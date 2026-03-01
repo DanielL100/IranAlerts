@@ -1,615 +1,261 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מנבא אזעקות | איראן → ישראל</title>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --red:#ff3344;--amber:#ff9900;--green:#00dd77;--blue:#2299ff;--purple:#9966ff;
-  --bg:#07070e;--panel:#0f0f1e;--panel2:#141428;
-  --border:#1c1c38;--border2:#252548;
-  --text:#eeeeff;--text2:#aabbdd;--muted:#445577;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Rubik',sans-serif;font-size:17px;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(34,153,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(34,153,255,.022) 1px,transparent 1px);background-size:50px 50px;z-index:0;pointer-events:none}
-.scanline{position:fixed;top:-3px;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(34,153,255,.1),transparent);animation:scan 6s linear infinite;z-index:1;pointer-events:none}
-@keyframes scan{0%{top:-3px}100%{top:100vh}}
-.wrap{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:28px 20px}
+    <meta charset="UTF-8">
+    <title>מנבא התרעות 2026 - גרסת המודלים הנפרדים</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        :root { 
+            --צפון: #2563eb; --מרכז: #dc2626; --דרום: #059669; --יוש: #7c3aed;
+            --bg: #f8fafc; 
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: auto; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; }
+        .tab-btn { padding: 12px 25px; border: 2px solid #e2e8f0; background: white; cursor: pointer; border-radius: 12px; font-weight: bold; white-space: nowrap; }
+        .tab-btn.active { color: white; border-color: transparent; }
+        .tab-btn[data-r="צפון"].active { background: var(--צפון); }
+        .tab-btn[data-r="מרכז"].active { background: var(--מרכז); }
+        .tab-btn[data-r="דרום"].active { background: var(--דרום); }
+        .tab-btn[data-r="יוש"].active { background: var(--יוש); }
 
-header{text-align:center;padding:38px 0 30px;border-bottom:1px solid var(--border);margin-bottom:28px}
-.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,51,68,.08);border:1px solid rgba(255,51,68,.35);color:var(--red);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:2px;padding:6px 18px;border-radius:4px;margin-bottom:20px;animation:bp 2.5s ease-in-out infinite}
-@keyframes bp{0%,100%{box-shadow:none}50%{box-shadow:0 0 22px rgba(255,51,68,.22)}}
-h1{font-size:clamp(32px,5.5vw,60px);font-weight:900;letter-spacing:-2px;line-height:1.05;background:linear-gradient(150deg,#fff 0%,#aabbff 40%,var(--blue) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px}
-.tagline{font-size:16px;color:var(--muted);font-family:'JetBrains Mono',monospace}
-.live-row{display:inline-flex;align-items:center;gap:9px;margin-top:14px;font-size:14px;color:var(--green);font-weight:500}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--green);animation:bl 1.4s ease-in-out infinite}
-@keyframes bl{0%,100%{opacity:1}50%{opacity:.12}}
+        .chart-container { position: relative; height: 550px; width: 100%; }
+        
+        .prediction-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #f1f5f9; padding: 15px; border-radius: 12px; text-align: center; border-bottom: 4px solid #cbd5e1; }
+        .stat-val { font-size: 1.8em; font-weight: 800; display: block; }
 
-/* FETCH BAR */
-.fetch-bar{background:var(--panel);border:1.5px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.fsp{width:18px;height:18px;border:2px solid rgba(34,153,255,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.fsp.ok{animation:none;border-color:var(--green);border-top-color:var(--green)}
-.fsp.fail{animation:none;border-color:var(--amber);border-top-color:var(--amber)}
-.ftxt{font-size:14px;color:var(--text2);font-family:'JetBrains Mono',monospace;flex:1;min-width:0}
-.fcnt{font-size:13px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap}
-.rbtn{background:rgba(34,153,255,.1);border:1px solid rgba(34,153,255,.3);color:var(--blue);padding:6px 14px;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;transition:all .2s}
-.rbtn:hover{background:rgba(34,153,255,.2)}
-
-/* STATUS */
-.status-bar{background:var(--panel);border:1.5px solid var(--border);border-radius:10px;padding:14px 22px;margin-bottom:26px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-.si{font-size:15px;color:var(--muted)}
-.si strong{color:var(--text);font-weight:700}
-#statusBadge{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:6px;font-size:16px;font-weight:700}
-
-/* TABS */
-.rlabel{font-size:13px;color:var(--muted);letter-spacing:2px;font-family:'JetBrains Mono',monospace;margin-bottom:14px}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:28px}
-@media(max-width:560px){.tabs{grid-template-columns:repeat(3,1fr)}}
-.tab{background:var(--panel);border:1.5px solid var(--border);border-radius:10px;padding:16px 10px;cursor:pointer;font-family:'Rubik',sans-serif;font-size:17px;font-weight:500;color:var(--muted);transition:all .22s;text-align:center}
-.tab:hover{border-color:var(--blue);color:var(--text)}
-.tab.on{background:rgba(34,153,255,.1);border-color:var(--blue);color:var(--blue);font-weight:700;box-shadow:0 0 18px rgba(34,153,255,.14)}
-.ti{display:block;font-size:24px;margin-bottom:6px}
-.tc{display:block;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px}
-
-/* CARDS */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-@media(max-width:700px){.g2{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1.5px solid var(--border);border-radius:12px;padding:26px}
-.card.ga{border-color:rgba(255,153,0,.28)}
-.card.gb{border-color:rgba(34,153,255,.2)}
-.ctit{font-size:12px;letter-spacing:2.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:18px;text-transform:uppercase}
-.pred-time{font-family:'JetBrains Mono',monospace;font-size:clamp(36px,6vw,62px);font-weight:700;color:var(--amber);text-shadow:0 0 28px rgba(255,153,0,.3);letter-spacing:1px;line-height:1;margin-bottom:10px}
-.pred-lbl{font-size:15px;color:var(--muted);margin-bottom:22px}
-.br{margin-bottom:14px}
-.brh{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-bottom:7px}
-.brv{font-weight:700}
-.btrack{height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
-.bfill{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
-.srow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);font-size:16px}
-.srow:last-child{border-bottom:none}
-.slbl{color:var(--muted)}
-.sval{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px}
-
-/* PROB */
-.p4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
-@media(max-width:560px){.p4{grid-template-columns:repeat(2,1fr)}}
-.pc{background:var(--panel2);border:1.5px solid var(--border);border-radius:10px;padding:16px 10px;text-align:center}
-.pcp{font-size:14px;color:var(--muted);margin-bottom:7px}
-.pcv{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700}
-.dmrow{display:flex;gap:14px;align-items:center;margin-top:18px}
-.dml{font-size:14px;color:var(--muted);white-space:nowrap;font-weight:500}
-.dmeter{flex:1;height:26px;background:rgba(255,255,255,.04);border-radius:6px;overflow:hidden;border:1px solid var(--border)}
-.dmf{height:100%;display:flex;align-items:center;padding:0 10px;justify-content:flex-end;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;transition:width 1.5s cubic-bezier(.25,1,.5,1);border-radius:6px}
-
-/* HOUR DIST */
-.hdist{display:flex;align-items:flex-end;gap:3px;height:70px;margin-top:16px}
-.hbar{flex:1;border-radius:2px 2px 0 0;min-height:3px;cursor:default;position:relative}
-.hbar:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100%+4px);left:50%;transform:translateX(-50%);background:#1a1a30;border:1px solid var(--border2);border-radius:4px;padding:5px 9px;font-size:11px;font-family:'JetBrains Mono',monospace;white-space:nowrap;color:var(--text);z-index:10;pointer-events:none}
-
-/* TIMELINE */
-.tlh{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:10px}
-.twin{overflow-x:auto;padding-bottom:8px}
-.tchart{display:flex;align-items:flex-end;gap:6px;height:130px;min-width:200px}
-.bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;position:relative;min-width:22px}
-.bc:hover .tb2{filter:brightness(1.6)}
-.tb2{width:100%;border-radius:4px 4px 0 0;min-height:4px}
-.tl2{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;white-space:nowrap}
-.tk2{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text2)}
-.ttp{display:none;position:absolute;bottom:calc(100%+8px);left:50%;transform:translateX(-50%);background:#1a1a30;border:1px solid var(--border2);border-radius:6px;padding:8px 12px;font-size:12px;font-family:'JetBrains Mono',monospace;white-space:nowrap;z-index:10;color:var(--text);line-height:1.7;pointer-events:none}
-.bc:hover .ttp{display:block}
-
-/* LOG TABLE */
-.sdiv{display:flex;align-items:center;gap:14px;margin:26px 0 18px}
-.sdiv span{font-size:13px;letter-spacing:2.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;text-transform:uppercase}
-.dline{flex:1;height:1px;background:var(--border)}
-.logwrap{max-height:440px;overflow-y:auto;border-radius:8px;border:1px solid var(--border)}
-.logwrap::-webkit-scrollbar{width:5px}
-.logwrap::-webkit-scrollbar-track{background:var(--panel2)}
-.logwrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-.logtbl{width:100%;border-collapse:collapse}
-.logtbl thead{position:sticky;top:0;z-index:5}
-.logtbl th{background:var(--panel2);font-size:12px;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;padding:11px 14px;text-align:right;border-bottom:1.5px solid var(--border2);white-space:nowrap}
-.logtbl td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;font-size:15px}
-.logtbl tr:hover td{background:rgba(34,153,255,.03)}
-.logtbl tr:last-child td{border-bottom:none}
-.rp{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-family:'JetBrains Mono',monospace;font-weight:700;margin:1px 2px}
-.rp-n{background:rgba(153,102,255,.15);color:var(--purple);border:1px solid rgba(153,102,255,.3)}
-.rp-c{background:rgba(34,153,255,.15);color:var(--blue);border:1px solid rgba(34,153,255,.3)}
-.rp-s{background:rgba(255,153,0,.15);color:var(--amber);border:1px solid rgba(255,153,0,.3)}
-.rp-w{background:rgba(0,221,119,.12);color:var(--green);border:1px solid rgba(0,221,119,.25)}
-.nodata{text-align:center;padding:40px;color:var(--muted);font-size:15px;font-family:'JetBrains Mono',monospace}
-
-/* REGION TABLE */
-.rtbl{width:100%;border-collapse:collapse}
-.rtbl th{font-size:12px;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;padding:11px 14px;text-align:right;border-bottom:1.5px solid var(--border);white-space:nowrap}
-.rtbl td{padding:14px;font-size:16px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
-.rtbl tr:hover td{background:rgba(34,153,255,.025)}
-.rbadge{display:inline-block;padding:4px 12px;border-radius:5px;font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:700}
-.rh{background:rgba(255,51,68,.14);color:var(--red);border:1px solid rgba(255,51,68,.3)}
-.rm{background:rgba(255,153,0,.14);color:var(--amber);border:1px solid rgba(255,153,0,.3)}
-.rl{background:rgba(0,221,119,.1);color:var(--green);border:1px solid rgba(0,221,119,.2)}
-.mbw{width:90px;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
-.mb2{height:100%;border-radius:4px}
-
-.ubtn{background:rgba(34,153,255,.08);border:1.5px solid rgba(34,153,255,.25);color:var(--blue);padding:9px 22px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;transition:all .2s}
-.ubtn:hover{background:rgba(34,153,255,.18);box-shadow:0 0 14px rgba(34,153,255,.2)}
-.ts{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);text-align:center;margin-bottom:18px}
-.meth{background:var(--panel2);border:1.5px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px}
-.meth p{font-size:15px;color:var(--muted);line-height:2.3;font-family:'JetBrains Mono',monospace}
-.meth em{color:var(--text);font-style:normal;font-weight:600}
-.meth code{color:var(--blue);font-size:13px}
-footer{text-align:center;padding:32px 0;color:var(--muted);font-size:14px;font-family:'JetBrains Mono',monospace;border-top:1px solid var(--border);margin-top:20px;line-height:2.2}
-</style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: right; border-bottom: 1px solid #eee; }
+        .row-צפון { border-right: 4px solid var(--צפון); }
+        .row-מרכז { border-right: 4px solid var(--מרכז); }
+        .row-דרום { border-right: 4px solid var(--דרום); }
+        .row-יוש { border-right: 4px solid var(--יוש); }
+    </style>
 </head>
 <body>
-<div class="scanline"></div>
-<div class="wrap">
 
-<header>
-  <div class="badge">🚨 מתקפות איראן · 28.02.2026 ואילך · ירי רקטות וטילים בלבד</div>
-  <h1>מנבא אזעקות<br>איראן → ישראל</h1>
-  <p class="tagline">נתונים חיים מ-oref.org.il · ניתוח סטטיסטי · החל מ-28/02/2026</p>
-  <div class="live-row"><span class="dot"></span><span id="liveStr">טוען נתונים...</span></div>
-</header>
-
-<div class="ts" id="ts">—</div>
-
-<div class="fetch-bar">
-  <div class="fsp" id="fsp"></div>
-  <div class="ftxt" id="ftxt">מתחבר לפיקוד העורף...</div>
-  <div class="fcnt" id="fcnt"></div>
-  <button class="rbtn" id="rbtn" onclick="doFetch()" style="display:none">⟳ נסה שוב</button>
-</div>
-
-<div class="status-bar">
-  <div class="si">מצב: <strong id="sitTxt">—</strong></div>
-  <div id="statusBadge">—</div>
-  <div class="si">אזעקה אחרונה: <strong id="lastStr">—</strong></div>
-  <div class="si">לפני: <strong id="sinceStr">—</strong></div>
-</div>
-
-<p class="rlabel">▸ בחר איזור</p>
-<div class="tabs">
-  <button class="tab on" onclick="selTab(0)"  id="t0" ><span class="ti">🇮🇱</span>כל הארץ<span class="tc" id="c0">—</span></button>
-  <button class="tab"    onclick="selTab(2)"  id="t2" ><span class="ti">🏔️</span>צפון<span class="tc" id="c2">—</span></button>
-  <button class="tab"    onclick="selTab(4)"  id="t4" ><span class="ti">🏙️</span>מרכז<span class="tc" id="c4">—</span></button>
-  <button class="tab"    onclick="selTab(8)"  id="t8" ><span class="ti">🏜️</span>דרום<span class="tc" id="c8">—</span></button>
-  <button class="tab"    onclick="selTab(16)" id="t16"><span class="ti">🗺️</span>יו"ש<span class="tc" id="c16">—</span></button>
-</div>
-
-<div class="g2">
-  <div class="card ga">
-    <p class="ctit">⏱ תחזית · אזעקה הבאה</p>
-    <div class="pred-time" id="predTime">—</div>
-    <div class="pred-lbl"  id="predLbl">בחינת נתונים...</div>
-    <div class="br">
-      <div class="brh"><span>רמת ביטחון בתחזית</span><span class="brv" id="cfV" style="color:var(--green)">—</span></div>
-      <div class="btrack"><div class="bfill" id="cfB" style="width:0%;background:linear-gradient(90deg,#885500,var(--amber))"></div></div>
+<div class="container">
+    <div class="card" id="upload-panel">
+        <h2>מערכת ניבוי רב-גזרתית v5</h2>
+        <p>טען את קובץ ה-history.json לניתוח מגמות נפרדות לכל חזית.</p>
+        <input type="file" id="jsonFile" accept=".json">
     </div>
-    <div class="br">
-      <div class="brh"><span>שעת שיא היסטורית</span><span class="brv" id="pkL" style="color:var(--red)">—</span></div>
-      <div class="btrack"><div class="bfill" id="pkB" style="width:0%;background:linear-gradient(90deg,#880011,var(--red))"></div></div>
+
+    <div id="dashboard" style="display:none">
+        <div class="tabs" id="tabsList"></div>
+        
+        <div class="prediction-box">
+            <div class="stat-card">
+                <span style="font-size:0.9em">ניבוי למטח הבא (גזרה נבחרת)</span>
+                <span id="nextTime" class="stat-val">--:--</span>
+            </div>
+            <div class="stat-card">
+                <span style="font-size:0.9em">זמן שנותר</span>
+                <span id="timeLeft" class="stat-val">--</span>
+            </div>
+            <div class="stat-card">
+                <span style="font-size:0.9em">עצימות חזויה</span>
+                <span id="predIntensity" class="stat-val">--</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>יומן אירועים משולב (החל מ-28/02/2026)</h4>
+            <table id="historyTable">
+                <thead>
+                    <tr><th>שעה</th><th>גזרה</th><th>עצימות</th><th>מיקומים</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
-    <div class="brh" style="margin-top:6px">
-      <span style="color:var(--muted);font-size:14px">אזעקה אחרונה</span>
-      <span style="font-family:'JetBrains Mono';font-size:14px;color:var(--text2)" id="lastAlt">—</span>
-    </div>
-  </div>
-  <div class="card gb">
-    <p class="ctit">📊 סטטיסטיקה · <span id="regLbl">כל הארץ</span></p>
-    <div class="srow"><span class="slbl">סה"כ אירועים (28/02/26+)</span><span class="sval" style="color:var(--blue)"   id="stTot">—</span></div>
-    <div class="srow"><span class="slbl">ממוצע יומי</span>              <span class="sval" style="color:var(--red)"    id="stDay">—</span></div>
-    <div class="srow"><span class="slbl">ממוצע בין אזעקות</span>        <span class="sval" style="color:var(--amber)"  id="stAvg">—</span></div>
-    <div class="srow"><span class="slbl">טווח נתונים</span>             <span class="sval" style="color:var(--text2)"  id="stSpan">—</span></div>
-    <div class="srow"><span class="slbl">שעה מסוכנת ביותר</span>        <span class="sval" style="color:var(--amber)"  id="stPkH">—</span></div>
-    <div class="srow"><span class="slbl">מצב נוכחי</span>              <span class="sval"                              id="stSit">—</span></div>
-  </div>
-</div>
-
-<div class="card" style="margin-bottom:16px">
-  <p class="ctit">🎯 הסתברות לאזעקה · <span id="plbl">כל הארץ</span></p>
-  <div class="p4">
-    <div class="pc"><p class="pcp">תוך שעה</p>  <div class="pcv" id="p1">—</div></div>
-    <div class="pc"><p class="pcp">תוך 6 שע׳</p><div class="pcv" id="p6">—</div></div>
-    <div class="pc"><p class="pcp">תוך 24 שע׳</p><div class="pcv" id="p24">—</div></div>
-    <div class="pc"><p class="pcp">תוך 48 שע׳</p><div class="pcv" id="p48">—</div></div>
-  </div>
-  <div class="dmrow">
-    <span class="dml">רמת סיכון (24שע׳)</span>
-    <div class="dmeter"><div class="dmf" id="dmf" style="width:0%"></div></div>
-  </div>
-</div>
-
-<div class="card" style="margin-bottom:16px">
-  <p class="ctit">🕐 התפלגות לפי שעה · <span id="hlbl">כל הארץ</span></p>
-  <div class="hdist" id="hdist"></div>
-  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:6px">
-    <span>00</span><span>03</span><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>23</span>
-  </div>
-</div>
-
-<div class="card" style="margin-bottom:16px">
-  <div class="tlh">
-    <p class="ctit" style="margin:0">📅 ציר זמן · <span id="tllbl">כל הארץ</span></p>
-    <button class="ubtn" onclick="doFetch()">⟳ רענן נתונים</button>
-  </div>
-  <div class="twin"><div class="tchart" id="tchart"></div></div>
-</div>
-
-<div class="sdiv"><div class="dline"></div><span>יומן אזעקות מפורט</span><div class="dline"></div></div>
-<div class="card" style="margin-bottom:16px;padding:0">
-  <div style="padding:18px 24px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-    <p class="ctit" style="margin:0">📋 <span id="loglbl">כל הארץ</span> · <span id="logcnt" style="color:var(--blue)">—</span></p>
-    <span style="font-size:13px;color:var(--muted);font-family:'JetBrains Mono',monospace">ממוין מהחדש לישן</span>
-  </div>
-  <div class="logwrap">
-    <table class="logtbl">
-      <thead><tr><th>#</th><th>תאריך ושעה</th><th>אזורים</th><th>מרווח מהקודמת</th><th>ישובים לדוגמה</th></tr></thead>
-      <tbody id="logBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<div class="sdiv"><div class="dline"></div><span>השוואה בין אזורים</span><div class="dline"></div></div>
-<div class="card" style="margin-bottom:16px">
-  <p class="ctit">🗺️ ניתוח לפי איזור</p>
-  <div style="overflow-x:auto">
-    <table class="rtbl">
-      <thead><tr><th>איזור</th><th>אירועים</th><th>ממוצע/יום</th><th>שעת שיא</th><th>ממוצע בין אזעקות</th><th>עצימות</th><th>סיכון</th></tr></thead>
-      <tbody id="rtbody"></tbody>
-    </table>
-  </div>
-</div>
-
-<div class="meth">
-  <p class="ctit">🔬 מתודולוגיה</p>
-  <p>▸ <em>מקור ראשי:</em> <code>oref.org.il/warningMessages/alert/History/AlertsHistory.json</code> — נטען בכל כניסה</p>
-  <p>▸ <em>מבנה נתונים:</em> כל רשומה = עיר אחת · <code>category=1</code> בלבד (ירי רקטות וטילים) · <code>alertDate</code> בשעון ישראל</p>
-  <p>▸ <em>ריכוז לאירועים:</em> רשומות בפרק של 90 שניות לאותה קבוצת אזעקה → אירוע אחד עם רשימת ערים</p>
-  <p>▸ <em>נתוני גיבוי:</em> 33 אירועים מאומתים מ-28/02/2026 (מהקובץ history.json של פיקוד העורף)</p>
-  <p>▸ <em>מודל:</em> התפלגות פואסון · λ = אירועים/שעה · תחזית = 1/λ שעות לאזעקה הבאה</p>
-</div>
-
-<footer>
-  ⚠️ למטרות מחקר בלבד · בעת אזעקה — מרחב מוגן מיד!<br>
-  פיקוד העורף: <strong style="color:var(--text)">104</strong>
-</footer>
 </div>
 
 <script>
-'use strict';
-
-// ═══ BASELINE — 33 verified events from history.json (28/02/2026) ═══
-// {ts, bits, h, d, cities}  bits: 1=all,2=N,4=C,8=S,16=WB
-var BASELINE = [{"ts":1772266220,"bits":7,"h":8,"d":"2026-02-28","cities":["קלע אלון","הילה","בית הלל","כפר גלעדי","כפר יובל","לב החולה"]},{"ts":1772267102,"bits":23,"h":8,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772267803,"bits":31,"h":8,"d":"2026-02-28","cities":["אזור תעשייה מישור אדומים","חוף קליה","מעלה אדומים","קדר","אלון","אלמוג"]},{"ts":1772268431,"bits":31,"h":8,"d":"2026-02-28","cities":["אזור תעשייה אלון התבור","אלמגור","אמנון","דברת","חמת גדר","טבריה"]},{"ts":1772269574,"bits":31,"h":9,"d":"2026-02-28","cities":["אזור תעשייה אלון התבור","אחוזת ברק","אכסאל","אלון הגליל","אלוני אבא","בית לחם הגלילית"]},{"ts":1772269945,"bits":31,"h":9,"d":"2026-02-28","cities":["חמדת","החווה של אורי כהן","החווה של מנחם","משכיות","בתרונות","אורנים"]},{"ts":1772271490,"bits":7,"h":9,"d":"2026-02-28","cities":["צפת - עכברה","אושה","אזור תעשייה שער נעמן","אפק","חיפה - מפרץ","חיפה - קריית חיים ושמואל"]},{"ts":1772272065,"bits":31,"h":9,"d":"2026-02-28","cities":["אורנים","אזור תעשייה אלון התבור","אחוזת ברק","אכסאל","אלון הגליל","אלוני אבא"]},{"ts":1772274516,"bits":31,"h":10,"d":"2026-02-28","cities":["מצוקי דרגות","מצפה שלם","עין גדי","מרחצאות עין גדי","מצפה מדרג","באר שבע - דרום"]},{"ts":1772274803,"bits":31,"h":10,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772276893,"bits":31,"h":11,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772282584,"bits":31,"h":12,"d":"2026-02-28","cities":["תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","בני ברק","גבעת השלושה"]},{"ts":1772285241,"bits":23,"h":13,"d":"2026-02-28","cities":["אזור תעשייה אלון התבור","אחוזת ברק","אכסאל","בלפוריה","גבעת אלה","גבת"]},{"ts":1772285696,"bits":7,"h":13,"d":"2026-02-28","cities":["בית העלמין החדש נהריה","בוסתן הגליל","בית העמק","בן עמי","גשר הזיו","נהריה"]},{"ts":1772286630,"bits":31,"h":13,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772287444,"bits":23,"h":14,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772287871,"bits":31,"h":14,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","בני ברק"]},{"ts":1772289227,"bits":31,"h":14,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772290449,"bits":23,"h":14,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772291580,"bits":23,"h":15,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772292891,"bits":23,"h":15,"d":"2026-02-28","cities":["אביאל","אזור תעשייה יקנעם עילית","אזור תעשייה מבוא כרמל","אליקים","גבעת ניל''י","גלעד"]},{"ts":1772293381,"bits":23,"h":15,"d":"2026-02-28","cities":["אבן יהודה","קדימה צורן","ענב","רחלים","איתמר","הר ברכה"]},{"ts":1772293653,"bits":13,"h":15,"d":"2026-02-28","cities":["באר שבע - דרום","באר שבע - מזרח","באר שבע - מערב","באר שבע - צפון","אבו קרינאת","אל פורעה"]},{"ts":1772294240,"bits":23,"h":15,"d":"2026-02-28","cities":["ירושלים - אזור תעשייה עטרות","ירושלים - צפון","אזור תעשייה מישור אדומים","מעלה אדומים","אזור תעשייה שער בנימין","אלון"]},{"ts":1772294559,"bits":23,"h":16,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772294679,"bits":31,"h":16,"d":"2026-02-28","cities":["בני עי''ש","אשדוד - א,ב,ד,ה","אשדוד - איזור תעשייה צפוני","אשדוד - ג,ו,ז","בני דרום","ניר גלים"]},{"ts":1772295330,"bits":23,"h":16,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772296481,"bits":31,"h":16,"d":"2026-02-28","cities":["אזור תעשייה עד הלום","אשדוד - א,ב,ד,ה","אשדוד - איזור תעשייה צפוני","אשדוד - ג,ו,ז","אשדוד - ח,ט,י,יג,יד,טז","אשדוד -יא,יב,טו,יז,מרינה,סיט"]},{"ts":1772297103,"bits":31,"h":16,"d":"2026-02-28","cities":["איתמר","אלון מורה","ארגמן","בקעות","הר ברכה","חמדת"]},{"ts":1772299535,"bits":23,"h":17,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","תל אביב - מזרח","תל אביב - מרכז העיר","תל אביב - עבר הירקון","אור יהודה","אזור"]},{"ts":1772310993,"bits":31,"h":20,"d":"2026-02-28","cities":["צור נתן","בית אלפא וחפציבה","בית שאן","טירת צבי","כפר גמילה מלכישוע","מירב"]},{"ts":1772311851,"bits":21,"h":20,"d":"2026-02-28","cities":["בקוע","נחשון","אזור תעשייה בראון","חוות גלעד","קדומים","שבי שומרון"]},{"ts":1772314150,"bits":31,"h":21,"d":"2026-02-28","cities":["תל אביב - דרום העיר ויפו","אור יהודה","אזור","בת ים","גיבתון","גמזו"]}];
-var EVENTS = BASELINE.slice();
-
-// Feb 28 2026 00:00 IST
-var CUTOFF = 1772348400;
-
-var RNAMES = {0:'כל הארץ',2:'צפון',4:'מרכז',8:'דרום',16:'יו"ש'};
-var RICONS  = {0:'🇮🇱',2:'🏔️',4:'🏙️',8:'🏜️',16:'🗺️'};
-var selBit  = 0;
-
-// ═══ REGION KEYWORDS ═══════════════════════════════════════════════════
-var KW = {
-  n:['חיפה','עכו','נהריה','כרמיאל','טבריה','צפת','גולן','כנרת','מגדל','קצרין','גליל','כרמל','זכרון','בנימינה','קיסריה','קריית','שלומי','מעלות','בית שאן','עפולה','נצרת','יגור','יוקנעם','ביריה','מירון','חצור','ראש פינה','נוף הגליל','שפרעם','טמרה','אבו סנאן','כפר מנדא','אביבים','אבירים','אושה','אורנים','אבטליון','כפר ורדים','לב החולה','קלע אלון','הילה','בית הלל','כפר גלעדי','כפר יובל','שניר','דן','אל-רום','אלמגור','אמנון','בית עלמין','בוסתן הגליל','בן עמי','גשר הזיו','אזור תעשייה שער נעמן','אזור תעשייה מבוא כרמל','אזור תעשייה יקנעם','חמת גדר','דברת','אכסאל','אלון הגליל','אלוני אבא','אחוזת ברק','בית לחם הגלילית','בלפוריה','גבעת אלה','גבת','צפות','אזור תעשייה אלון התבור','אפק','חמדת','אזור תעשייה בר-לב','אזור תעשייה שער'],
-  c:['תל אביב','רמת גן','גבעתיים','חולון','בת ים','פתח תקווה','ראשון לציון','נס ציונה','רחובות','מודיעין','לוד','רמלה','נתניה','הרצליה','כפר סבא','רעננה','הוד השרון','ראש העין','יהוד','אור יהודה','גבעת שמואל','קריית אונו','גני עם','תל מונד','פלמחים','גמזו','אבן יהודה','אבני חפץ','אביחיל','אודים','אזור','אורנית','הראל','חולדה','צור נתן','חמדיה','נחלת יהודה','כפר אביב','אזור תעשייה אפק','שוהם','כפר חב"ד','בני ברק','גבעת השלושה','גבעת עדה','גלעד','אליקים','ענב','אזור תעשייה מישור','גיבתון'],
-  s:['באר שבע','דימונה','אשקלון','קריית גת','נתיבות','שדרות','אופקים','ערד','ירוחם','מצפה רמון','רהט','לכיש','קרית מלאכי','בני עי','גן יבנה','אשדוד','אביגיל','אדורה','אדורים','אום בטין','אבו קרינאת','אבו תלול','מצוקי דרגות','מצפה שלם','עין גדי','מרחצאות עין גדי','חוף קליה','קליה','בית קמה','להבים','אזור תעשייה עד הלום','בני דרום','ניר גלים','מצפה מדרג'],
-  w:['ירושלים','מעלה אדומים','בית אל','אריאל','גוש עציון','אלון שבות','אפרת','כפר עציון','ביתר','מעלה לבונה','ארגמן','שילה','חוות יאיר','איתמר','אביתר','אזור תעשייה ברקן','אזור תעשייה אריאל','אזור תעשייה בראון','אבו גוש','אבן ספיר','כוכב יעקב','כפר עקב','עטרות','אזור תעשייה מישור אדומים','אלון','קדר','חמדת','אזור תעשייה שער בנימין','בקוע','נחשון','קדומים','שבי שומרון','אלון מורה','הר ברכה','בקעות','רחלים']
+const CUTOFF_TS = Math.floor(new Date('2026-02-28T00:00:00').getTime() / 1000);
+const REGION_COLORS = { 'צפון': '#2563eb', 'מרכז': '#dc2626', 'דרום': '#059669', 'יוש': '#7c3aed' };
+const KEYWORDS = {
+    'צפון': ['גליל', 'גולן', 'חיפה', 'קריות', 'נהריה', 'עכו', 'צפת', 'קצרין', 'שלומי'],
+    'מרכז': ['תל אביב', 'גוש דן', 'שרון', 'שפלה', 'ראשון', 'נתניה', 'פתח תקווה', 'חולון'],
+    'דרום': ['עוטף', 'אשקלון', 'אשדוד', 'באר שבע', 'נתיבות', 'שדרות', 'אילת'],
+    'יוש': ['יהודה', 'שומרון', 'בנימין', 'אריאל', 'מעלה אדומים']
 };
 
-function classifyBits(cities) {
-  var b = 1;
-  cities.forEach(function(city) {
-    if (KW.n.some(function(k){ return city.indexOf(k)>=0; })) b |= 2;
-    if (KW.c.some(function(k){ return city.indexOf(k)>=0; })) b |= 4;
-    if (KW.s.some(function(k){ return city.indexOf(k)>=0; })) b |= 8;
-    if (KW.w.some(function(k){ return city.indexOf(k)>=0; })) b |= 16;
-  });
-  return b;
-}
+let allSalvos = {};
+let activeRegion = '';
+let chart = null;
 
-// ═══ FILTER ════════════════════════════════════════════════════════════
-function filter(bit) {
-  if (bit===0) return EVENTS;
-  return EVENTS.filter(function(e){ return (e.bits & bit) !== 0; });
-}
-
-// ═══ STATS ═════════════════════════════════════════════════════════════
-function poisson(lam,t){ return 1-Math.exp(-lam*t); }
-function pad2(n){ return String(n%24).padStart(2,'0'); }
-function hourDist(arr){ var h=new Array(24).fill(0); arr.forEach(function(e){h[e.h]++;}); return h; }
-function groupByDay(arr){
-  var m={};
-  arr.forEach(function(e){ m[e.d]=(m[e.d]||0)+1; });
-  return Object.entries(m).sort(function(a,b){return a[0].localeCompare(b[0]);});
-}
-
-function compute(arr) {
-  if (!arr.length) return null;
-  var minTs=arr[0].ts, maxTs=arr[arr.length-1].ts;
-  var daySpan=Math.max((maxTs-minTs)/86400, 1/24);
-  var dr=arr.length/daySpan;
-  var gaps=[];
-  for(var i=1;i<arr.length;i++) gaps.push((arr[i].ts-arr[i-1].ts)/3600);
-  var avgGap=gaps.length?gaps.reduce(function(a,b){return a+b;},0)/gaps.length:99;
-  var hd=hourDist(arr), pkh=hd.indexOf(Math.max.apply(null,hd));
-  var lam=arr.length/(daySpan*24);
-  var cf=Math.min(88,18+arr.length*2.2);
-  var spanStr=daySpan<1?Math.round(daySpan*24)+' שעות':daySpan.toFixed(1)+' ימים';
-  return {
-    tot:arr.length, dr:dr.toFixed(1), avgGap:avgGap.toFixed(1),
-    pkh:pkh, pks:pad2(pkh)+':00–'+pad2(pkh+1)+':00', hd:hd,
-    p1:poisson(lam,1), p6:poisson(lam,6), p24:poisson(lam,24), p48:poisson(lam,48),
-    expH:lam>0?1/lam:9999, cf:cf, spanStr:spanStr, last:arr[arr.length-1]
-  };
-}
-
-function fmt(h){
-  if(h>=9999) return 'לא ידוע';
-  if(h<1/60)  return 'עכשיו';
-  if(h<1)     return Math.round(h*60)+' דקות';
-  if(h<24)    return h.toFixed(1)+' שע׳';
-  return (h/24).toFixed(1)+' ימים';
-}
-function pct(v){ return Math.round(v*100)+'%'; }
-function pcol(v){ return v>0.7?'var(--red)':v>0.3?'var(--amber)':'var(--green)'; }
-function bgGrad(v){ return v>0.7?'linear-gradient(90deg,#880011,var(--red))':v>0.3?'linear-gradient(90deg,#885500,var(--amber))':'linear-gradient(90deg,#005533,var(--green))'; }
-function fmtTs(ts){ return new Date(ts*1000).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-function since(ts){
-  var s=Math.floor(Date.now()/1000)-ts;
-  if(s<60)    return s+'ש׳';
-  if(s<3600)  return Math.floor(s/60)+' ד׳';
-  if(s<86400) return Math.floor(s/3600)+' שע׳';
-  return Math.floor(s/86400)+' ימים';
-}
-function pills(bits){
-  var s='';
-  if(bits&2)  s+='<span class="rp rp-n">צפון</span>';
-  if(bits&4)  s+='<span class="rp rp-c">מרכז</span>';
-  if(bits&8)  s+='<span class="rp rp-s">דרום</span>';
-  if(bits&16) s+='<span class="rp rp-w">יו"ש</span>';
-  return s||'<span class="rp rp-c" style="opacity:.4">—</span>';
-}
-
-// ═══ RENDER ════════════════════════════════════════════════════════════
-function render(bit) {
-  var arr=filter(bit), rname=RNAMES[bit]||'כל הארץ';
-  [0,2,4,8,16].forEach(function(b){
-    var el=document.getElementById('c'+b);
-    if(el) el.textContent=filter(b).length+' אז׳';
-  });
-  ['regLbl','plbl','hlbl','tllbl','loglbl'].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.textContent=rname;
-  });
-
-  if(!arr.length){
-    document.getElementById('predTime').textContent='אין נתונים';
-    document.getElementById('predLbl').textContent='לא נמצאו אזעקות לאיזור זה';
-    document.getElementById('logcnt').textContent='0 רשומות';
-    document.getElementById('logBody').innerHTML='<tr><td colspan="5" class="nodata">אין נתונים לאיזור זה</td></tr>';
-    return;
-  }
-
-  var d=compute(arr);
-
-  document.getElementById('predTime').textContent=fmt(d.expH);
-  document.getElementById('predLbl').textContent='זמן ממוצע עד אזעקה הבאה · '+rname;
-  document.getElementById('cfV').textContent=Math.round(d.cf)+'%';
-  document.getElementById('cfB').style.width=d.cf+'%';
-  var ns=d.pkh<=6?94:d.pkh>=19?82:46;
-  document.getElementById('pkB').style.width=ns+'%';
-  document.getElementById('pkL').textContent=d.pks;
-  document.getElementById('lastAlt').textContent=fmtTs(d.last.ts);
-
-  document.getElementById('stTot').textContent=d.tot;
-  document.getElementById('stDay').textContent=d.dr+' אז׳';
-  document.getElementById('stAvg').textContent=d.avgGap+' שע׳';
-  document.getElementById('stSpan').textContent=d.spanStr;
-  document.getElementById('stPkH').textContent=d.pks;
-  document.getElementById('stSit').textContent='🔴 מלחמה פעילה';
-  document.getElementById('stSit').style.color='var(--red)';
-
-  [{id:'p1',v:d.p1},{id:'p6',v:d.p6},{id:'p24',v:d.p24},{id:'p48',v:d.p48}].forEach(function(p){
-    var el=document.getElementById(p.id); el.textContent=pct(p.v); el.style.color=pcol(p.v);
-  });
-  var dp=Math.round(d.p24*100);
-  var dm=document.getElementById('dmf');
-  dm.style.width=dp+'%'; dm.style.background=bgGrad(d.p24);
-  dm.style.color=dp>40?'#000':'transparent'; dm.textContent=dp+'%';
-
-  var sb=document.getElementById('statusBadge');
-  sb.textContent='🔴 מלחמה פעילה'; sb.style.background='rgba(255,51,68,.12)';
-  sb.style.border='1px solid var(--red)'; sb.style.color='var(--red)';
-  document.getElementById('sitTxt').textContent='🔴 מלחמה פעילה';
-  document.getElementById('lastStr').textContent=fmtTs(d.last.ts);
-  document.getElementById('sinceStr').textContent=since(d.last.ts);
-  document.getElementById('liveStr').textContent=EVENTS.length+' אירועים · עדכון אחרון: '+new Date().toLocaleTimeString('he-IL');
-
-  // Hour dist
-  var hdEl=document.getElementById('hdist'); hdEl.innerHTML='';
-  var mx=Math.max.apply(null,d.hd);
-  for(var i=0;i<24;i++){
-    var hp=mx>0?Math.max(4,Math.round((d.hd[i]/mx)*100)):4;
-    var col=i<=5?'#9966ff':i<=11?'#2299ff':i<=17?'#ff9900':'#ff3344';
-    var b=document.createElement('div'); b.className='hbar';
-    b.style.height=hp+'%'; b.style.background=col; b.style.opacity='.75';
-    b.setAttribute('data-tip',pad2(i)+':00  '+d.hd[i]+' אז׳');
-    hdEl.appendChild(b);
-  }
-
-  // Timeline
-  var bd=groupByDay(arr);
-  var tcEl=document.getElementById('tchart'); tcEl.innerHTML='';
-  if(bd.length){
-    var tmx=Math.max.apply(null,bd.map(function(x){return x[1];}));
-    bd.forEach(function(day){
-      var hp=Math.max(5,Math.round((day[1]/tmx)*100));
-      var dt=new Date(day[0]+'T12:00:00');
-      var lbl=(dt.getDate())+'/'+(dt.getMonth()+1);
-      var c=document.createElement('div'); c.className='bc';
-      c.innerHTML='<div class="ttp">'+day[0]+'<br>'+day[1]+' אזעקות</div><div class="tk2">'+day[1]+'</div><div class="tb2" style="height:'+hp+'%;background:var(--red);opacity:.85;box-shadow:0 0 8px rgba(255,51,68,.4)"></div><div class="tl2">'+lbl+'</div>';
-      tcEl.appendChild(c);
-    });
-  }
-
-  // Log table
-  var sorted=arr.slice().sort(function(a,b){return b.ts-a.ts;});
-  document.getElementById('logcnt').textContent=sorted.length+' רשומות';
-  var tbody=document.getElementById('logBody'); tbody.innerHTML='';
-  var fwd=arr.slice().sort(function(a,b){return a.ts-b.ts;});
-  var gapMap={};
-  for(var i=1;i<fwd.length;i++) gapMap[fwd[i].ts]=Math.round((fwd[i].ts-fwd[i-1].ts)/60);
-  sorted.forEach(function(ev,idx){
-    var gMin=gapMap[ev.ts];
-    var gStr=gMin!=null?(gMin<60?gMin+' ד׳':Math.floor(gMin/60)+'h '+(gMin%60)+'m'):'—';
-    var gCol=gMin!=null?(gMin<10?'var(--red)':gMin<30?'var(--amber)':'var(--green)'):'var(--muted)';
-    var cities=(ev.cities||[]).slice(0,4).join(', ')||'—';
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td style="color:var(--muted);font-family:monospace;font-size:13px">'+(sorted.length-idx)+'</td>'+
-      '<td style="font-family:monospace;font-size:14px;white-space:nowrap">'+fmtTs(ev.ts)+'</td>'+
-      '<td>'+pills(ev.bits)+'</td>'+
-      '<td style="font-family:monospace;font-size:14px;color:'+gCol+'">'+gStr+'</td>'+
-      '<td style="font-size:13px;color:var(--text2);font-family:monospace;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+cities+'</td>';
-    tbody.appendChild(tr);
-  });
-
-  // Region table
-  var rbody=document.getElementById('rtbody'); rbody.innerHTML='';
-  var bits=[2,4,8,16];
-  var tots=bits.map(function(b){return filter(b).length;});
-  var mxT=Math.max.apply(null,tots)||1;
-  bits.forEach(function(b){
-    var rarr=filter(b), rd=rarr.length?compute(rarr):null, rtot=rarr.length;
-    var rel=Math.round((rtot/mxT)*100);
-    var p24=rd?rd.p24:0, rc='rl',rt2='נמוך';
-    if(p24>0.6){rc='rh';rt2='גבוה';}else if(p24>0.3){rc='rm';rt2='בינוני';}
-    var bc2=p24>0.6?'var(--red)':p24>0.3?'var(--amber)':'var(--green)';
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td style="font-weight:700;font-size:17px">'+RICONS[b]+' '+RNAMES[b]+'</td>'+
-      '<td><span style="color:var(--blue);font-family:monospace;font-weight:700;font-size:17px">'+rtot+'</span></td>'+
-      '<td><span style="color:var(--red);font-family:monospace">'+( rd?rd.dr:'—')+'</span></td>'+
-      '<td><span style="color:var(--amber);font-family:monospace;font-size:14px">'+( rd?rd.pks:'—')+'</span></td>'+
-      '<td><span style="font-family:monospace">'+( rd?rd.avgGap+'h':'—')+'</span></td>'+
-      '<td><div class="mbw"><div class="mb2" style="width:'+rel+'%;background:'+bc2+'"></div></div></td>'+
-      '<td><span class="rbadge '+rc+'">'+rt2+'</span></td>';
-    rbody.appendChild(tr);
-  });
-
-  document.getElementById('ts').textContent='⟳ עודכן: '+new Date().toLocaleString('he-IL');
-}
-
-function selTab(bit){
-  selBit=bit;
-  [0,2,4,8,16].forEach(function(b){document.getElementById('t'+b).classList.toggle('on',b===bit);});
-  render(bit);
-}
-
-// ═══ FETCH FROM OREF ═══════════════════════════════════════════════════
-function setState(state,txt,extra){
-  var sp=document.getElementById('fsp'); sp.className='fsp'+(state==='ok'?' ok':state==='fail'?' fail':'');
-  document.getElementById('ftxt').textContent=txt;
-  document.getElementById('fcnt').textContent=extra||'';
-  document.getElementById('rbtn').style.display=state==='fail'?'inline-block':'none';
-}
-
-function mergeEvents(newEvs){
-  // Key by rounded-minute timestamp to group same-event records
-  var existing={};
-  EVENTS.forEach(function(e){ existing[e.ts]=true; });
-  var added=0;
-  newEvs.forEach(function(e){
-    if(!e||existing[e.ts]) return;
-    EVENTS.push(e); existing[e.ts]=true; added++;
-  });
-  EVENTS.sort(function(a,b){return a.ts-b.ts;});
-  return added;
-}
-
-// Parse raw AlertsHistory.json records.
-// The file is a flat array of single-city records. We group consecutive records
-// within 90 seconds as one alert event (same salvo).
-function parseAlertsHistory(records) {
-  // Filter: category=1, after CUTOFF
-  var filtered = records.filter(function(r){
-    return (r.category===1||r.category==='1') && r.alertDate && r.data;
-  }).map(function(r){
-    // alertDate is "YYYY-MM-DD HH:MM:SS" in Israel time (UTC+2)
-    var raw = r.alertDate.replace(' ','T')+'+02:00';
-    var ts  = Math.floor(new Date(raw).getTime()/1000);
-    return { ts:ts, city:r.data.trim() };
-  }).filter(function(r){ return r.ts>=CUTOFF && !isNaN(r.ts); });
-
-  // Sort by time
-  filtered.sort(function(a,b){return a.ts-b.ts;});
-
-  // Group into events: records within 90s of the previous belong to the same event
-  var events=[], cur=null;
-  filtered.forEach(function(r){
-    if(!cur||r.ts-cur.maxTs>90){
-      cur={ts:r.ts, maxTs:r.ts, cities:[]};
-      events.push(cur);
-    }
-    cur.maxTs=r.ts;
-    if(cur.cities.indexOf(r.city)<0) cur.cities.push(r.city);
-  });
-
-  // Build output
-  return events.map(function(ev){
-    var dt=new Date(ev.ts*1000);
-    var bits=classifyBits(ev.cities);
-    return { ts:ev.ts, bits:bits, h:dt.getHours(), d:dt.toISOString().split('T')[0], cities:ev.cities.slice(0,6) };
-  });
-}
-
-async function doFetch(){
-  setState('loading','מתחבר ל-oref.org.il...');
-  var URL='https://www.oref.org.il/warningMessages/alert/History/AlertsHistory.json';
-  try {
-    var resp=await fetch(URL,{
-      headers:{
-        'Referer':          'https://www.oref.org.il/',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept':           'application/json, text/plain, */*',
-      },
-      cache:'no-store'
-    });
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    setState('loading','מוריד קובץ...');
-    var text=await resp.text();
-    if(text.length<100) throw new Error('קובץ ריק או פגום');
-    setState('loading','מעבד נתונים...');
-    var json=JSON.parse(text);
-    // File can be wrapped in {history:[...]} or be a bare array
-    var records=Array.isArray(json)?json:(json.history||json.data||json.alerts||[]);
-    var parsed=parseAlertsHistory(records);
-    var added=mergeEvents(parsed);
-    setState('ok','✅ עודכן מפיקוד העורף · '+EVENTS.length+' אירועים סה"כ', added?'+'+added+' חדשים':'עדכני');
-    render(selBit);
-  } catch(err){
-    console.warn('[oref]',err.message);
-    setState('fail','⚠️ '+err.message+' · מוצגים '+EVENTS.length+' נתוני גיבוי','לחץ "נסה שוב" בעוד מעט');
-    render(selBit);
-  }
-}
-
-// ═══ INIT ══════════════════════════════════════════════════════════════
-window.addEventListener('load',function(){
-  render(0);
-  doFetch();
-  setInterval(doFetch, 120000);   // re-fetch every 2 min
-  setInterval(function(){         // refresh "time since" every 30s
-    var last=EVENTS.length?EVENTS[EVENTS.length-1]:null;
-    if(last){
-      document.getElementById('sinceStr').textContent=since(last.ts);
-    }
-  },30000);
+document.getElementById('jsonFile').addEventListener('change', e => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            process(data);
+        } catch(err) { alert("שגיאה בקריאת הקובץ"); }
+    };
+    reader.readAsText(e.target.files[0]);
 });
+
+function process(data) {
+    const bins = { 'צפון': [], 'מרכז': [], 'דרום': [], 'יוש': [] };
+    const filtered = data.filter(d => d[3] >= CUTOFF_TS && d[1] === 0);
+
+    filtered.forEach(item => {
+        const txt = item[2].join(' ');
+        for (let r in KEYWORDS) {
+            if (KEYWORDS[r].some(k => txt.includes(k))) {
+                bins[r].push({ t: item[3], locs: item[2] });
+                break;
+            }
+        }
+    });
+
+    for (let r in bins) {
+        if (bins[r].length > 0) allSalvos[r] = group(bins[r]);
+    }
+
+    renderTabs();
+    updateView(Object.keys(allSalvos)[0] || 'צפון');
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('upload-panel').style.display = 'none';
+}
+
+function group(alerts) {
+    alerts.sort((a,b) => a.t - b.t);
+    const salvos = [];
+    if(alerts.length === 0) return [];
+    let cur = { s: alerts[0].t, e: alerts[0].t, count: alerts[0].locs.length, list: new Set(alerts[0].locs) };
+    for(let i=1; i<alerts.length; i++) {
+        if(alerts[i].t - cur.e <= 300) {
+            cur.e = alerts[i].t;
+            cur.count += alerts[i].locs.length;
+            alerts[i].locs.forEach(l => cur.list.add(l));
+        } else {
+            salvos.push(cur);
+            cur = { s: alerts[i].t, e: alerts[i].t, count: alerts[i].locs.length, list: new Set(alerts[i].locs) };
+        }
+    }
+    salvos.push(cur);
+    return salvos;
+}
+
+function getPrediction(region) {
+    const salvos = allSalvos[region];
+    if(!salvos || salvos.length < 2) return null;
+    
+    const now = Math.floor(Date.now() / 1000);
+    const last = salvos[salvos.length - 1];
+    
+    let intervals = [];
+    for(let i=1; i<salvos.length; i++) intervals.push(salvos[i].s - salvos[i-1].e);
+    
+    // חישוב מרווח מותאם אישית לגזרה
+    const avg = intervals.reduce((a,b)=>a+b,0) / intervals.length;
+    let predTime = last.e + avg;
+
+    // תיקון "זמן עבר" + למידה מהשונות
+    if (predTime <= now) {
+        const maxInt = Math.max(...intervals);
+        predTime = Math.max(now + 300, last.e + maxInt);
+    }
+
+    // ניבוי עצימות
+    const avgIntensity = salvos.reduce((a,b)=>a+b.count,0) / salvos.length;
+
+    return {
+        time: new Date(predTime * 1000),
+        minutes: Math.round((predTime - now) / 60),
+        intensity: Math.round(avgIntensity)
+    };
+}
+
+function renderTabs() {
+    const list = document.getElementById('tabsList');
+    list.innerHTML = '';
+    Object.keys(allSalvos).forEach(r => {
+        const b = document.createElement('button');
+        b.className = 'tab-btn';
+        b.innerText = r;
+        b.setAttribute('data-r', r);
+        b.onclick = () => updateView(r);
+        list.appendChild(b);
+    });
+}
+
+function updateView(region) {
+    activeRegion = region;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-r') === region));
+    
+    const pred = getPrediction(region);
+    if(pred) {
+        document.getElementById('nextTime').innerText = pred.time.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
+        document.getElementById('timeLeft').innerText = pred.minutes + " דקות";
+        document.getElementById('predIntensity').innerText = pred.intensity + " ישובים";
+    }
+
+    renderChart();
+    renderTable();
+}
+
+function renderChart() {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    if (chart) chart.destroy();
+
+    const datasets = Object.keys(allSalvos).map(r => {
+        const isSelected = (r === activeRegion);
+        return {
+            label: r,
+            data: allSalvos[r].map(s => ({ x: s.s * 1000, y: s.count })),
+            borderColor: REGION_COLORS[r],
+            backgroundColor: REGION_COLORS[r] + (isSelected ? '33' : '00'),
+            borderWidth: isSelected ? 4 : 1.5,
+            pointRadius: isSelected ? 6 : 2,
+            fill: isSelected,
+            tension: 0.2
+        };
+    });
+
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { type: 'time', time: { unit: 'hour' } },
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+function renderTable() {
+    const tbody = document.querySelector('#historyTable tbody');
+    let combined = [];
+    Object.keys(allSalvos).forEach(r => {
+        allSalvos[r].forEach(s => combined.push({ ...s, region: r }));
+    });
+    combined.sort((a,b) => b.s - a.s);
+
+    tbody.innerHTML = combined.map(s => `
+        <tr class="row-${s.region}">
+            <td>${new Date(s.s*1000).toLocaleTimeString()}</td>
+            <td><strong>${s.region}</strong></td>
+            <td>${s.count}</td>
+            <td>${Array.from(s.list).slice(0,3).join(', ')}...</td>
+        </tr>
+    `).join('');
+}
 </script>
 </body>
 </html>

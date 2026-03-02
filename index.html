@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>מנבא התרעות 2026 - גרסת המודלים הנפרדים</title>
+    <title>מנבא התרעות 2026 - גרסת GitHub אוטומטית</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
@@ -34,19 +34,27 @@
         .row-מרכז { border-right: 4px solid var(--מרכז); }
         .row-דרום { border-right: 4px solid var(--דרום); }
         .row-יוש { border-right: 4px solid var(--יוש); }
+
+        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card" id="upload-panel">
-        <h2>מערכת ניבוי רב-גזרתית v5</h2>
-        <p>טען את קובץ ה-history.json לניתוח מגמות נפרדות לכל חזית.</p>
-        <input type="file" id="jsonFile" accept=".json">
+    <div class="card" id="status-panel">
+        <h2 id="status-title">מערכת ניבוי רב-גזרתית v6</h2>
+        <div id="status-content">
+            <p>מתחבר ל-GitHub לטעינת נתונים...</p>
+            <div class="loading-spinner"></div>
+        </div>
     </div>
 
     <div id="dashboard" style="display:none">
-        <div class="tabs" id="tabsList"></div>
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div class="tabs" id="tabsList" style="margin-bottom:0"></div>
+            <button onclick="fetchFromGithub()" class="tab-btn" style="background:#f1f5f9">🔄 רענן נתונים</button>
+        </div>
         
         <div class="prediction-box">
             <div class="stat-card">
@@ -82,6 +90,9 @@
 </div>
 
 <script>
+/** --- הגדרות כתובת ה-GITHUB --- **/
+const GITHUB_JSON_URL = 'https://raw.githubusercontent.com/DanielL100/IranAlerts/refs/heads/main/history.json'; 
+
 const CUTOFF_TS = Math.floor(new Date('2026-02-28T00:00:00').getTime() / 1000);
 const REGION_COLORS = { 'צפון': '#2563eb', 'מרכז': '#dc2626', 'דרום': '#059669', 'יוש': '#7c3aed' };
 const KEYWORDS = {
@@ -95,18 +106,30 @@ let allSalvos = {};
 let activeRegion = '';
 let chart = null;
 
-document.getElementById('jsonFile').addEventListener('change', e => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-        try {
-            const data = JSON.parse(ev.target.result);
-            process(data);
-        } catch(err) { alert("שגיאה בקריאת הקובץ"); }
-    };
-    reader.readAsText(e.target.files[0]);
-});
+// פונקציית הטעינה מ-GitHub
+async function fetchFromGithub() {
+    const statusContent = document.getElementById('status-content');
+    try {
+        // הוספת Timestamp למניעת Cache (מטמון) של הדפדפן
+        const response = await fetch(`${GITHUB_JSON_URL}?t=${Date.now()}`);
+        if (!response.ok) throw new Error(`שגיאה בקבלת הקובץ (${response.status})`);
+        
+        const data = await response.json();
+        process(data);
+        
+        document.getElementById('status-panel').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+    } catch (err) {
+        statusContent.innerHTML = `
+            <p style="color:red; font-weight:bold;">שגיאה בטעינת הנתונים:</p>
+            <p>${err.message}</p>
+            <button onclick="fetchFromGithub()" class="tab-btn" style="background:#eee">נסה שוב</button>
+        `;
+    }
+}
 
 function process(data) {
+    allSalvos = {}; // איפוס
     const bins = { 'צפון': [], 'מרכז': [], 'דרום': [], 'יוש': [] };
     const filtered = data.filter(d => d[3] >= CUTOFF_TS && d[1] === 0);
 
@@ -125,9 +148,7 @@ function process(data) {
     }
 
     renderTabs();
-    updateView(Object.keys(allSalvos)[0] || 'צפון');
-    document.getElementById('dashboard').style.display = 'block';
-    document.getElementById('upload-panel').style.display = 'none';
+    updateView(activeRegion || Object.keys(allSalvos)[0] || 'צפון');
 }
 
 function group(alerts) {
@@ -159,17 +180,14 @@ function getPrediction(region) {
     let intervals = [];
     for(let i=1; i<salvos.length; i++) intervals.push(salvos[i].s - salvos[i-1].e);
     
-    // חישוב מרווח מותאם אישית לגזרה
     const avg = intervals.reduce((a,b)=>a+b,0) / intervals.length;
     let predTime = last.e + avg;
 
-    // תיקון "זמן עבר" + למידה מהשונות
     if (predTime <= now) {
         const maxInt = Math.max(...intervals);
         predTime = Math.max(now + 300, last.e + maxInt);
     }
 
-    // ניבוי עצימות
     const avgIntensity = salvos.reduce((a,b)=>a+b.count,0) / salvos.length;
 
     return {
@@ -199,7 +217,7 @@ function updateView(region) {
     const pred = getPrediction(region);
     if(pred) {
         document.getElementById('nextTime').innerText = pred.time.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
-        document.getElementById('timeLeft').innerText = pred.minutes + " דקות";
+        document.getElementById('timeLeft').innerText = (pred.minutes < 0 ? 0 : pred.minutes) + " דקות";
         document.getElementById('predIntensity').innerText = pred.intensity + " ישובים";
     }
 
@@ -256,6 +274,10 @@ function renderTable() {
         </tr>
     `).join('');
 }
+
+// טעינה ראשונית
+fetchFromGithub();
+
 </script>
 </body>
 </html>

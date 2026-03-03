@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מעקב אזעקות | ניתוח וחיזוי</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #e85d26;
+    --accent2: #f5a623;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --north: #6366f1;
+    --center: #f59e0b;
+    --south: #ef4444;
+    --wb: #22c55e;
+    --total: #94a3b8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Heebo', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(232,93,38,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(59,130,246,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    background: rgba(10,14,26,0.9);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-inner { display: flex; align-items: center; justify-content: space-between; }
+
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    animation: pulse-icon 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-icon {
+    0%,100% { box-shadow: 0 0 0 0 rgba(232,93,38,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(232,93,38,0); }
+  }
+
+  .status-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.3);
+    color: var(--green);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* Loading */
+  #loading {
+    min-height: 60vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px;
+  }
+
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Main content */
+  #main { display: none; padding: 32px 0 60px; }
+
+  /* Section title */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Stats row */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card:hover { border-color: rgba(232,93,38,0.4); }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Prediction card */
+  .prediction-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .prediction-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .prediction-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media(max-width:700px) { .prediction-grid { grid-template-columns: 1fr; } }
+
+  .pred-main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pred-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--accent2);
+    line-height: 1;
+    letter-spacing: -2px;
+  }
+
+  .pred-date {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .pred-confidence {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .conf-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .conf-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+
+  .conf-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent2);
+    min-width: 40px;
+  }
+
+  .pred-details { display: flex; flex-direction: column; gap: 10px; }
+
+  .pred-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .pred-detail-label { color: var(--text-muted); }
+
+  .pred-detail-val {
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  .region-tag {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .tag-north { background: rgba(99,102,241,0.15); color: var(--north); }
+  .tag-center { background: rgba(245,158,11,0.15); color: var(--center); }
+  .tag-south { background: rgba(239,68,68,0.15); color: var(--red); }
+  .tag-wb { background: rgba(34,197,94,0.15); color: var(--wb); }
+  .tag-all { background: rgba(148,163,184,0.15); color: var(--total); }
+
+  /* Past prediction indicator */
+  .past-pred-warning {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #fca5a5;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  /* Slider */
+  .slider-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .slider-mode-badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .mode-live {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.3);
+    color: var(--green);
+  }
+
+  .mode-history {
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.3);
+    color: var(--accent2);
+  }
+
+  .slider-wrap {
+    padding: 8px 0;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .slider-current-info {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 13px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .slider-info-item { display: flex; gap: 6px; }
+  .slider-info-key { color: var(--text-muted); }
+  .slider-info-val { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* Charts */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  @media(max-width:800px) { .charts-grid { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* Table */
+  .table-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+
+  .table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .table-filters {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn.active, .filter-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,93,38,0.08);
+  }
+
+  .filter-btn.north.active { border-color: var(--north); color: var(--north); background: rgba(99,102,241,0.08); }
+  .filter-btn.center.active { border-color: var(--center); color: var(--center); background: rgba(245,158,11,0.08); }
+  .filter-btn.south.active { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.08); }
+  .filter-btn.wb.active { border-color: var(--wb); color: var(--wb); background: rgba(34,197,94,0.08); }
+
+  .table-scroll { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    padding: 12px 16px;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--surface2);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,45,69,0.6);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+  tbody td {
+    padding: 11px 16px;
+    vertical-align: middle;
+  }
+
+  .cities-short { color: var(--text); }
+  .cities-all { display: none; color: var(--text); }
+
+  .expand-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-right: 6px;
+    transition: all 0.15s;
+    font-family: 'Heebo', sans-serif;
+  }
+
+  .expand-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .batch-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(245,158,11,0.1);
+    color: var(--accent2);
+    border: 1px solid rgba(245,158,11,0.2);
+  }
+
+  /* Pagination */
+  .table-footer {
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pagination { display: flex; gap: 6px; }
+
+  .page-btn {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .page-btn:hover, .page-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,93,38,0.08);
+  }
+
+  .timeline-wrap {
+    margin-bottom: 32px;
+  }
+
+  .timeline-row {
+    display: flex;
+    gap: 0;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface2);
+  }
+
+  .tl-block {
+    flex: 1;
+    position: relative;
+    border-left: 1px solid var(--bg);
+  }
+
+  .tl-block.has-alert::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    background: currentColor;
+    opacity: 0.7;
+  }
+
+  .model-info {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  .model-info strong { color: var(--text); }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 20px 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🚀</div>
+        <span>מעקב אזעקות</span>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span id="status-text">טוען...</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div id="loading">
+    <div class="spinner"></div>
+    <div style="color:var(--text-muted);font-size:14px">טוען נתוני אזעקות...</div>
+  </div>
+
+  <div id="main">
+    <!-- Stats -->
+    <div style="margin-top:32px">
+      <div class="section-title">סטטיסטיקות כלליות</div>
+      <div class="stats-grid" id="stats-grid"></div>
+    </div>
+
+    <!-- Prediction -->
+    <div class="section-title">חיזוי אזעקה הבאה</div>
+    <div class="past-pred-warning" id="past-warning">
+      ⚠️ זמן החיזוי כבר עבר ולא דווחה אזעקה — המודל מחשב מחדש...
+    </div>
+    <div class="prediction-panel">
+      <div class="prediction-grid">
+        <div class="pred-main">
+          <div style="font-size:13px;color:var(--text-muted);font-weight:600">האזעקה הבאה צפויה בסביבות</div>
+          <div class="pred-time" id="pred-time">--:--</div>
+          <div class="pred-date" id="pred-date"></div>
+          <div class="pred-confidence">
+            <div style="font-size:12px;color:var(--text-muted);white-space:nowrap">אמינות:</div>
+            <div class="conf-bar"><div class="conf-fill" id="conf-fill" style="width:0%"></div></div>
+            <div class="conf-label" id="conf-label">--%</div>
+          </div>
+          <div class="model-info" id="model-info"></div>
+        </div>
+        <div class="pred-details" id="pred-details"></div>
+      </div>
+    </div>
+
+    <!-- Slider -->
+    <div class="section-title">מסע בזמן — בדוק את דיוק החיזוי</div>
+    <div class="slider-panel">
+      <div class="slider-header">
+        <div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:4px">השווה חיזוי לאזעקות בפועל</div>
+          <div style="font-size:12px;color:var(--text-muted)">הסט את הסליידר לאזעקה מסוימת כדי לראות מה המודל היה מנבא באותה נקודת זמן</div>
+        </div>
+        <div class="slider-mode-badge mode-live" id="slider-mode-badge">⦿ LIVE</div>
+      </div>
+      <div class="slider-wrap">
+        <input type="range" id="timeline-slider" min="0" value="100" max="100" step="1">
+        <div class="slider-labels">
+          <span id="slider-start">תחילת תקופה</span>
+          <span id="slider-end">עכשיו (Live)</span>
+        </div>
+      </div>
+      <div class="slider-current-info" id="slider-info">
+        <div class="slider-info-item">
+          <span class="slider-info-key">אזעקה:</span>
+          <span class="slider-info-val" id="si-idx">–</span>
+        </div>
+        <div class="slider-info-item">
+          <span class="slider-info-key">זמן:</span>
+          <span class="slider-info-val" id="si-time">–</span>
+        </div>
+        <div class="slider-info-item">
+          <span class="slider-info-key">גזרה:</span>
+          <span class="slider-info-val" id="si-region">–</span>
+        </div>
+        <div class="slider-info-item">
+          <span class="slider-info-key">ניבוי הבא:</span>
+          <span class="slider-info-val" id="si-pred">–</span>
+        </div>
+        <div class="slider-info-item" id="si-actual-wrap" style="display:none">
+          <span class="slider-info-key">בפועל:</span>
+          <span class="slider-info-val" id="si-actual">–</span>
+        </div>
+        <div class="slider-info-item" id="si-error-wrap" style="display:none">
+          <span class="slider-info-key">שגיאה:</span>
+          <span class="slider-info-val" id="si-error">–</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="section-title">גרפי אזעקות לפי גזרות</div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">🔢 מטחים לפי גזרה</div>
+        <div class="chart-wrap"><canvas id="chart-regions"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📅 מטחים לפי יום</div>
+        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🕐 מטחים לפי שעה ביממה</div>
+        <div class="chart-wrap"><canvas id="chart-hourly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📊 מרווחים בין מטחים (דקות)</div>
+        <div class="chart-wrap"><canvas id="chart-intervals"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="section-title">טבלת התרעות מלאה</div>
+    <div class="table-panel">
+      <div class="table-header">
+        <div style="font-size:15px;font-weight:700">רשומות אזעקות — רקטות וטילים בלבד מ-28/2/26</div>
+        <div class="table-filters">
+          <button class="filter-btn active" data-filter="all">הכל</button>
+          <button class="filter-btn north" data-filter="north">צפון</button>
+          <button class="filter-btn center" data-filter="center">מרכז</button>
+          <button class="filter-btn south" data-filter="south">דרום</button>
+          <button class="filter-btn wb" data-filter="wb">יו"ש</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>תאריך ושעה</th>
+              <th>גזרה</th>
+              <th>ערים</th>
+              <th>מטח</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <div id="table-count" style="color:var(--text-muted);font-size:13px"></div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="container">
+    נתונים: פיקוד העורף | עדכון אחרון: <span id="last-update">–</span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  REGION CLASSIFICATION
+//  Strategy: use a comprehensive hardcoded map built from
+//  the actual pikud haoref zone data, keyed by city name.
+//  Unknown cities fall back to keyword heuristics.
+// ============================================================
+
+// Each entry: cityName → region
+// Built from actual IDF Home Front Command districts:
+// NORTH  = חיפה, הצפון, גליל, גולן, עמקים, כרמל, עכו, נהריה, קריות, חדרה ושרון (מעל נתניה)
+// CENTER = גוש דן, שרון דרומי, שפלה, ירושלים, מודיעין
+// SOUTH  = נגב, עוטף עזה, אשדוד, אשקלון, קריית גת, שפלה דרומית
+// WB     = יהודה ושומרון
+
+const CITY_REGION = {};
+function r(region, ...cities) { cities.forEach(c => CITY_REGION[c] = region); }
+
+// ── צפון ──────────────────────────────────────────────────────
+r('north',
+  // גליל עליון
+  'קריית שמונה','מטולה','כפר גלעדי','תל חי','כפר בלום','קיבוץ דן','שניר','דפנה',
+  'הגושרים','גונן','לב החולה','נאות מרדכי','עמיר','שדה נחמיה','להבות הבשן',
+  'כפר סאלד','שמיר','מנרה','יפתח','מלכיה','דישון','מרגליות','משגב עם',
+  'מרכז אזורי מבואות חרמון','רמות נפתלי','מעיין ברוך','כפר יובל','שאר ישוב',
+  'אביבים','חולתה','יסוד המעלה','גדות','אורטל','מחניים','איילת השחר','משמר הירדן',
+  'בית הלל','מעש',
+  // גולן
+  'קצרין','קצרין - אזור תעשייה','שעל','מצוק עורבים','רמת טראמפ','נוב','אבני איתן',
+  'אלוני הבשן','מיצר','אניעם','נטור','חספין','כנף','קדמת צבי','אורטל','גדות',
+  'רמות','אל רום',"מג'דל שמס",'בוקעתא','מסעדה',
+  // גליל מערבי
+  'נהריה','עכו','שלומי','כברי','לימן','נווה זיו','בצת','חוף בצת','ראש הנקרה',
+  'שתולה','נטועה','זרעית','שומרה','חניתה','מצובה','יערה','אדמית','מתת','כחל',
+  'בית העלמין החדש נהריה','נתיב השיירה',"שייח' דנון",'אבו סנאן','כפר יאסיף',
+  "ג'וליס","ירכא","טל - אל","ג'דידה מכר","ג'דיידה מכר",'יסעור','מגאר',
+  "ג'ש - גוש חלב","ג'ש",'גוש חלב','סאסא','בית ספר שדה מירון','צבעון',
+  "דוב''ב",'ברעם','כפר מסריק','עין המפרץ','עכו - אזור תעשייה',
+  'אזור תעשייה שער נעמן','אזור תעשייה קריית ביאליק','איזור תעשייה מילואות צפון',
+  'מעלות-תרשיחא','מעלות','תרשיחא',
+  // גליל תחתון
+  'צפת','צפת - עיר','צפת - נוף כנרת','צפת - עכברה','ביריה','עמוקה','ראש פינה',
+  'חצור הגלילית','מגדל','טבריה','כינרת','גינוסר','מגדל תפן','עילבון','שפרעם',
+  'טמרה','כרמיאל','לבון',"בועינה נוג'ידאת",'ריחאנייה','עלמה','דלתון',
+  'אזור תעשייה רמת דלתון','כרם בן זמרה','אור הגנוז',"ג'שר","מג'דל כרום",
+  'בענה','לוטם','כמון','טורעאן','ריינה','נוף הגליל','נצרת עילית','נצרת',
+  "ע'ג'ר",'חוראפיש','פקיעין','כפר כנא','אעבלין',
+  'שלוחות','בית לחם הגלילית','בית שערים','אלוני אבא','כפר תקווה','כפר יהושע',
+  'נהלל','אלון הגליל','אלונים','ביר אלמכסור','גבעת אלה','הסוללים','הרדוף',
+  'זרזיר',"חג'אג'רה",'כעביה','כעביה טבאש','כפר טבאש','מנשית זבדה','נופית',
+  'עדי','קריית טבעון','קריית טבעון - בית זייד','ראס עלי','רמת דוד','רמת ישי',
+  'שדה יעקב','שמשית','שער העמקים','תמרת',"ח'וואלד",'חוואלד','סואעד חמירה',
+  'אתר ההנצחה גולני','אילניה','נבי שועייב','בסמת טבעון','גבעת אבני','ארבל',
+  'כפר זיתים',
+  // עמק יזרעאל ובית שאן
+  'עפולה','מגדל העמק','יקנעם','בית שאן','גן השלושה','מעוז חיים','ניר דוד',
+  'בית אלפא','חפציבה','שדה אליהו','טירת צבי','תל יוסף','גבע','עין חרוד',
+  // חיפה והכרמל
+  'חיפה','חיפה - מערב','קריית ביאליק','קריית אתא','קריית מוצקין','קריית ים',
+  'קריית חיים','נשר','טירת כרמל','עיספיא','דאלית אל כרמל','עוספיא','פרדיס',
+  'יגור','עין הוד','מבוא כרמל','נחשולים','כפר ביאליק','כפר חסידים',
+  // חדרה וצפון השרון (מעל נתניה)
+  'חדרה','פרדס חנה-כרכור','אור עקיבא','עמיקם','גבעות בר','רמות מנשה','אליקים',
+  "ג'סר אל זרקא",'בנימינה','זכרון יעקב','עתלית','קיסריה','גבעת עדה'
+);
+
+// ── דרום ──────────────────────────────────────────────────────
+r('south',
+  // עוטף עזה
+  'שדרות',"שדרות, איבים",'נתיבות','אופקים','ניר עם','כפר עזה','נחל עוז','סעד',
+  'עלומים','מבטחים','עמיעוז','ישע',"מבטחים, עמיעוז, ישע",'ארז','מטווח ניר עם',
+  'ניר עוז','נירים','דקל','תלמי יוסף','מבקיעים','כיסופים','סופה','פטיש','גברעם',
+  'יד נתן','כוכב מיכאל','נוגה','עוצם','בארי','כרם שלום','נחל עוז',
+  // חוף ואשקלון
+  'נתיב העשרה','יד מרדכי','זיקים','כרמיה','אזור תעשייה הדרומי אשקלון',
+  'אזור תעשייה עד הלום','אשקלון','אשקלון - צפון','אשקלון - דרום',
+  'אזור תעשייה צפוני אשקלון','באר גנים','ברכיה','הודיה','כפר סילבר',
+  'ניצנים','ניר ישראל','ניצן','שוקדה',"אזור תעשייה נ.ע.מ",'שתולים',
+  'עזריקם','שדה עוזיהו','אמונים','בני דרום','ניר גלים','גן הדרום',
+  'חוף ניצנים','ניר גלים',
+  // אשדוד
+  'אשדוד',"אשדוד - א,ב,ד,ה","אשדוד - ג,ו,ז","אשדוד - ח,ט,י,יג,יד,טז",
+  "אשדוד -יא,יב,טו,יז,מרינה,סיט","אשדוד - איזור תעשייה צפוני",
+  // שפלה דרומית
+  'גן יבנה','יבנה','פלמחים','נצר סרני','ישרש','ניר צבי','קריית גת',
+  'קריית מלאכי','גן שלמה','נגבה','בית עזרא','אביגדור','תימורים',
+  'אזור תעשייה תימורים','אזור תעשייה באר טוביה','גלאון','ורדון','קדמה',
+  'אור הנר','אלומה','בית שקמה','ברור חיל','בת הדר','גבעתי','גיאה','דורות',
+  'זבדיאל','זוהר','זרחיה','חוות שיקמים','חלץ','מנוחה','מרכז שפירא',
+  'משואות יצחק','משען','נהורה','נחלה',"ניר בנים","ניר ח''ן",'סגולה','עזר',
+  'עין צורים','קוממיות','רווחה','שדה דוד','שדה יואב','שחר','שפיר','תלמי יפה',
+  'תלמים','פארק תעשייה ראם','אזור תעשייה תימורים','מזכרת בתיה',
+  // נגב
+  'באר שבע','באר שבע - דרום','באר שבע - מערב','באר שבע - מזרח','באר שבע - צפון',
+  'דימונה','ירוחם','מצפה רמון','ערד','תל ערד','רהט','לקיה','חורה','כסייפה',
+  'ערערה בנגב','אבו קרינאת','אל פורעה','חירן','סעווה','אל סייד','תל שבע',
+  'אבו תלול','אום בטין','נבטים','חצרים','אתר דודאים',
+  "אדוריים","אזור תעשייה מיתרים","בית חגי","בית חג'י","טנא עומרים","כרמים",
+  "כרמל","מיתר","מעלה חבר","נגוהות","סנסנה","עשהאל","עתניאל","שמעה","מרעית",
+  'היישוב היהודי חברון'
+);
+
+// ── יו"ש ──────────────────────────────────────────────────────
+r('wb',
+  'אריאל','מעלה אדומים','קריית ארבע','גוש עציון','עפרה','בית אל','קדומים',
+  'אלון שבות','תקוע','כפר עציון','אפרת','בית חורון','גבעת זאב','שילה','עלי',
+  'ברכה','נבי שמואל','כוכב יעקב','אדם','מעלה מכמש','עלמון','ענתות',
+  'מצפה יריחו','בית הערבה','גלגל','ביתר עילית','מודיעין עילית','בית ריחא',
+  'גבעון החדשה','הר גילה','כפר עדומים','מעלה אדומים','אלעזר','אשכולות',
+  'אחיה','שבות רחל','מעלה לבונה','ריחן','קרני שומרון','אלקנה','עמנואל',
+  'גינות שומרון','ברקן','שעלבים','נחלים','מאלה','כוכב השחר','פסגות',
+  'בית חגי','מעון','חגי','שמעה','כרמל','מעלה חבר'
+);
+
+// ── מרכז ──────────────────────────────────────────────────────
+r('center',
+  'תל אביב','תל אביב - דרום העיר ויפו','תל אביב - מרכז','תל אביב - צפון',
+  'בת ים','חולון','רמת גן','גבעתיים','פתח תקווה','בני ברק','רמת השרון',
+  'הרצליה','כפר סבא','רעננה','הוד השרון','נתניה','רמלה','לוד','אור יהודה',
+  'יהוד','מודיעין','בית שמש','ירושלים','ירושלים - מערב','ירושלים - מזרח',
+  'אבן ספיר','בית מאיר','נווה אילן','שורש','מבשרת ציון',
+  'רחובות','נס ציונה','ראשון לציון','בית דגן','יהוד מונוסון','אלעד','מגשימים',
+  'מזור','נופך','נחלים','נחשונים','רינתיה','בארות יצחק','פתח תקווה',
+  'כפר שמריהו','גלילות','אזור','שוהם','כפר סירקין','גבעת שמואל',
+  'גני תקווה','אבן יהודה','כפר נטר','עמק חפר','הרצליה',
+  'ראש העין','קלנסווה','טייבה','טירה','כפר קאסם',"ג'לג'וליה",
+  'כפר ברא','ערערה','כפר קרע','עארה','מעיון חרוד','נחלאות',
+  'יבנאל','כפר יהושע','רכסים','קריית ביאליק','באקה אל-גרביה',
+  'כפר קרע',"ג'ת",'עמיקם','גבעת עדה',
+  'נתניה','אבן יהודה','תל מונד','כפר יונה','אור עקיבא',
+  'פרדס חנה-כרכור','בנימינה','קיסריה','זכרון יעקב','עתלית',
+  'גן יבנה','יבנה','נצר סרני','באר יעקב','רחובות',
+  'גן שלמה',"כפר ביל''ו",'גבעת ברנר'
+);
+
+function classifyCity(city) {
+  if (CITY_REGION[city] !== undefined) return CITY_REGION[city];
+  // Keyword heuristics for truly unknown cities
+  if (/גליל|גולן|כינרת|חרמון|כרמל|חיפה|עכו|צפת|טבריה|יזרעאל|הבשן|גבוע|מרגליות|קריית שמונה/.test(city)) return 'north';
+  if (/נגב|ערד|דימונ|ירוחם|אופקים|רהט|שדרות|נתיבות|אשדוד|אשקלון|עוטף|זיקים|באר שבע/.test(city)) return 'south';
+  if (/שומרון|יהודה|בנימין|יריחו|חברון|קדומים|שילה|אריאל|אפרת|ביתר/.test(city)) return 'wb';
+  return 'center';
+}
+
+function classifyAlert(cities) {
+  const counts = {north:0, center:0, south:0, wb:0};
+  cities.forEach(c => counts[classifyCity(c)]++);
+  const max = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  return max[0];
+}
+
+const REGION_LABELS = {north:'צפון', center:'מרכז', south:'דרום', wb:'יו"ש'};
+const REGION_COLORS = {north:'#6366f1', center:'#f59e0b', south:'#ef4444', wb:'#22c55e'};
+
+// ============================================================
+//  DATE UTILS
+// ============================================================
+function formatDate(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleDateString('he-IL', {day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+function formatTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function formatDateTime(ts) {
+  return formatDate(ts) + ' ' + formatTime(ts);
+}
+
+// ============================================================
+//  MAIN
+// ============================================================
+const DATA_URL = 'https://raw.githubusercontent.com/DanielL100/IranAlerts/refs/heads/main/history.json';
+const FILTER_FROM = new Date('2026-02-28T00:00:00').getTime() / 1000;
+const BATCH_GAP = 5 * 60; // 5 minutes
+
+let allAlerts = [];    // filtered alerts (rockets only, from date)
+let batches = [];      // grouped into batches
+let currentFilter = 'all';
+let currentPage = 1;
+const PAGE_SIZE = 30;
+
+async function loadData() {
+  try {
+    const res = await fetch(DATA_URL);
+    const raw = await res.json();
+    // Filter: type==5 (rockets), from FILTER_FROM
+    allAlerts = raw
+      .filter(r => r[1] === 0 && r[3] >= FILTER_FROM)
+      .map(r => ({
+        id: r[0],
+        type: r[1],
+        cities: r[2],
+        ts: r[3],
+        region: classifyAlert(r[2])
+      }))
+      .sort((a,b) => a.ts - b.ts);
+
+    batches = groupBatches(allAlerts);
+    document.getElementById('status-text').textContent = `${allAlerts.length} התרעות | ${batches.length} מטחים`;
+    document.getElementById('last-update').textContent = formatDateTime(allAlerts[allAlerts.length-1]?.ts || 0);
+    renderAll();
+  } catch(e) {
+    document.getElementById('loading').innerHTML = `<div style="color:#ef4444">שגיאה בטעינת הנתונים: ${e.message}</div>`;
+    console.error(e);
+  }
+}
+
+function groupBatches(alerts) {
+  if (!alerts.length) return [];
+  const groups = [];
+  let cur = [alerts[0]];
+  for (let i = 1; i < alerts.length; i++) {
+    if (alerts[i].ts - alerts[i-1].ts <= BATCH_GAP) {
+      cur.push(alerts[i]);
+    } else {
+      groups.push(cur);
+      cur = [alerts[i]];
+    }
+  }
+  groups.push(cur);
+  // Filter out small batches (< 20 total cities) — likely irrelevant fire
+  const MIN_CITIES = 20;
+  return groups.filter(batch => {
+    const totalCities = batch.reduce((sum, a) => sum + a.cities.length, 0);
+    return totalCities >= MIN_CITIES;
+  });
+}
+
+function renderAll() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  renderStats();
+  renderPrediction(batches);
+  renderSlider();
+  renderCharts();
+  renderTable();
+}
+
+// ============================================================
+//  STATS
+// ============================================================
+function renderStats() {
+  const total = batches.length;
+  const byRegion = {north:0, center:0, south:0, wb:0};
+  batches.forEach(b => {
+    // A batch can span multiple regions
+    const regions = new Set(b.map(a => a.region));
+    regions.forEach(r => byRegion[r]++);
+  });
+  const intervals = getIntervals(batches);
+  const avgInterval = intervals.length ? Math.round(intervals.reduce((a,b)=>a+b,0)/intervals.length) : 0;
+  const html = `
+    <div class="stat-card">
+      <div class="stat-label">סה"כ מטחים</div>
+      <div class="stat-value" style="color:var(--accent)">${total}</div>
+      <div class="stat-sub">מ-28/2/26</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📍 צפון</div>
+      <div class="stat-value" style="color:var(--north)">${byRegion.north}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📍 מרכז</div>
+      <div class="stat-value" style="color:var(--center)">${byRegion.center}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📍 דרום</div>
+      <div class="stat-value" style="color:var(--red)">${byRegion.south}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📍 יו"ש</div>
+      <div class="stat-value" style="color:var(--wb)">${byRegion.wb}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">מרווח ממוצע</div>
+      <div class="stat-value" style="color:var(--blue)">${formatMinutes(avgInterval)}</div>
+      <div class="stat-sub">בין מטחים</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">סה"כ התרעות</div>
+      <div class="stat-value" style="color:var(--text-muted)">${allAlerts.length}</div>
+      <div class="stat-sub">ערים/יישובים</div>
+    </div>
+  `;
+  document.getElementById('stats-grid').innerHTML = html;
+}
+
+function formatMinutes(secs) {
+  const h = Math.floor(secs/3600);
+  const m = Math.floor((secs%3600)/60);
+  if (h > 0) return `${h}ש'${m}ד'`;
+  return `${m}ד'`;
+}
+
+function getIntervals(batchList) {
+  if (batchList.length < 2) return [];
+  const intervals = [];
+  for (let i = 1; i < batchList.length; i++) {
+    intervals.push(batchList[i][0].ts - batchList[i-1][batchList[i-1].length-1].ts);
+  }
+  return intervals;
+}
+
+// ============================================================
+//  PREDICTION ENGINE
+//  Two-mode model:
+//  BURST mode  — last interval was short (<90min): predict using recent short intervals
+//  QUIET→BURST — last interval was long (≥90min):  predict using historical short intervals
+// ============================================================
+function predictNext(batchList, now, deterministic = false) {
+  if (batchList.length === 0) {
+    return { ts: (now/1000) + 3600, confidence: 0.1, regionProbs: {}, wMean:0, median:0, expSmooth:0, wStd:0, n:0, mode:'no data' };
+  }
+
+  const lastBatch = batchList[batchList.length - 1];
+  const lastTs = lastBatch[lastBatch.length - 1].ts;
+  const allIntervals = getIntervals(batchList);
+
+  if (allIntervals.length === 0) {
+    return { ts: lastTs + 3600, confidence: 0.2, regionProbs: {}, wMean:0, median:0, expSmooth:0, wStd:0, n:0, mode:'single' };
+  }
+
+  const LONG_THRESH = 90 * 60; // 90 minutes — threshold between burst and quiet
+  const lastIv = allIntervals[allIntervals.length - 1];
+
+  // Collect all "burst" intervals (short gaps — actual firing cadence)
+  const shortIvs = allIntervals.filter(iv => iv < LONG_THRESH);
+
+  let raw, mode;
+  if (lastIv >= LONG_THRESH) {
+    // Came out of a quiet period — next alert will be a burst; use recent short intervals
+    mode = 'quiet→burst';
+    raw = shortIvs.length >= 3 ? shortIvs.slice(-6) : allIntervals.slice(-6);
+  } else {
+    // Currently in a burst — use recent short intervals from current burst window
+    mode = 'burst';
+    const recentWindow = allIntervals.slice(-8);
+    const recentShort = recentWindow.filter(iv => iv < LONG_THRESH);
+    raw = recentShort.length >= 2 ? recentShort : shortIvs.slice(-6);
+    if (raw.length === 0) raw = allIntervals.slice(-4);
+  }
+
+  // Weighted mean (strong recency decay)
+  const decay = 0.72;
+  const weights = raw.map((_, i) => Math.pow(decay, raw.length - 1 - i));
+  const totalW = weights.reduce((a,b)=>a+b, 0);
+  const wMean = raw.reduce((s, iv, i) => s + iv * weights[i], 0) / totalW;
+  const wVar  = raw.reduce((s, iv, i) => s + weights[i] * Math.pow(iv - wMean, 2), 0) / totalW;
+  const wStd  = Math.sqrt(wVar);
+
+  const sorted = [...raw].sort((a,b)=>a-b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+
+  // Exponential smoothing (high alpha = very reactive)
+  const alpha = 0.55;
+  let expSmooth = raw[0];
+  for (let i = 1; i < raw.length; i++) expSmooth = alpha * raw[i] + (1 - alpha) * expSmooth;
+
+  const combined  = expSmooth * 0.5 + wMean * 0.3 + median * 0.2;
+  const predicted = Math.max(combined, 300);
+  let predictedTs = lastTs + predicted;
+
+  if (!deterministic) {
+    const nowSec = now / 1000;
+    if (predictedTs < nowSec) predictedTs = nowSec + Math.max(predicted * 0.25, 300);
+  }
+
+  const cv = wMean > 0 ? wStd / wMean : 1;
+  const confidence = Math.max(0.1, Math.min(0.92, 1 - cv * 0.55));
+
+  // Region probs — last 6 batches with strong recency bias
+  const regionCounts = {north:0, center:0, south:0, wb:0};
+  batchList.slice(-6).forEach((b, i, arr) => {
+    const w = Math.pow(0.7, arr.length - 1 - i);
+    new Set(b.map(a => a.region)).forEach(r => regionCounts[r] += w);
+  });
+  const totalR = Object.values(regionCounts).reduce((a,b)=>a+b, 0) || 1;
+  const regionProbs = {};
+  Object.keys(regionCounts).forEach(k => regionProbs[k] = regionCounts[k] / totalR);
+
+  return { ts: predictedTs, confidence, regionProbs, wMean, median, expSmooth, wStd, combined, n: raw.length, mode };
+}
+let currentPred = null;
+let livePredCached = null;
+
+function getStorageKey(batchList) {
+  const lastTs = batchList.length > 0 ? batchList[batchList.length-1][0].ts : 0;
+  return 'livePred_' + lastTs;
+}
+
+function renderPrediction(batchList) {
+  const now = Date.now();
+  const storageKey = getStorageKey(batchList);
+
+  // Try localStorage first — survives page reload
+  if (!livePredCached) {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) livePredCached = JSON.parse(saved);
+    } catch(e) {}
+  }
+
+  // Compute only if not cached for this dataset
+  if (!livePredCached) {
+    livePredCached = predictNext(batchList, now, false);
+    try {
+      Object.keys(localStorage).filter(k => k.startsWith('livePred_')).forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(storageKey, JSON.stringify(livePredCached));
+    } catch(e) {}
+  }
+
+  const pred = livePredCached;
+  currentPred = pred;
+
+  const d = new Date(pred.ts * 1000);
+  const isPast = pred.ts * 1000 < now;
+
+  document.getElementById('past-warning').style.display = isPast ? 'block' : 'none';
+
+  document.getElementById('pred-time').textContent =
+    d.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  document.getElementById('pred-date').textContent =
+    d.toLocaleDateString('he-IL', {weekday:'long', day:'numeric', month:'long'}) +
+    (isPast ? ' ⚠️ עבר' : '');
+
+  const confPct = Math.round(pred.confidence * 100);
+  document.getElementById('conf-fill').style.width = confPct + '%';
+  document.getElementById('conf-label').textContent = confPct + '%';
+
+  // Details
+  const topRegions = Object.entries(pred.regionProbs || {})
+    .filter(([,v])=>v>0.05)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,3);
+
+  const modeLabel = pred.mode === 'quiet→burst' ? '🔄 אחרי שקט — פרץ צפוי' : pred.mode === 'burst' ? '⚡ פרץ פעיל' : pred.mode || '–';
+  const detailsHtml = `
+    <div class="pred-detail-row">
+      <span class="pred-detail-label">מצב זיהוי</span>
+      <span class="pred-detail-val" style="font-size:12px">${modeLabel}</span>
+    </div>
+    ${topRegions.map(([r,p])=>`
+      <div class="pred-detail-row">
+        <span class="pred-detail-label">סיכוי — <span class="region-tag tag-${r}">${REGION_LABELS[r]}</span></span>
+        <span class="pred-detail-val">${Math.round(p*100)}%</span>
+      </div>
+    `).join('')}
+    <div class="pred-detail-row">
+      <span class="pred-detail-label">ממוצע משוקלל</span>
+      <span class="pred-detail-val">${pred.wMean ? Math.round(pred.wMean/60)+'ד\'' : '–'}</span>
+    </div>
+    <div class="pred-detail-row">
+      <span class="pred-detail-label">חציון</span>
+      <span class="pred-detail-val">${pred.median ? Math.round(pred.median/60)+'ד\'' : '–'}</span>
+    </div>
+    <div class="pred-detail-row">
+      <span class="pred-detail-label">החלקה אקספוננציאלית</span>
+      <span class="pred-detail-val">${pred.expSmooth ? Math.round(pred.expSmooth/60)+'ד\'' : '–'}</span>
+    </div>
+    <div class="pred-detail-row">
+      <span class="pred-detail-label">סטיית תקן</span>
+      <span class="pred-detail-val">${pred.wStd ? Math.round(pred.wStd/60)+'ד\'' : '–'}</span>
+    </div>
+    <div class="pred-detail-row">
+      <span class="pred-detail-label">מרווחים לניתוח</span>
+      <span class="pred-detail-val">${pred.n || 0}</span>
+    </div>
+  `;
+  document.getElementById('pred-details').innerHTML = detailsHtml;
+
+  document.getElementById('model-info').innerHTML =
+    `<strong>מודל דו-פאזי:</strong> זיהוי אוטומטי של מצב. 
+    <strong>פרץ פעיל</strong> — ניבוי לפי מרווחים קצרים אחרונים (מתחת ל-90 דקות).
+    <strong>אחרי שקט</strong> — ניבוי לפי ממוצע פרצים היסטוריים קצרים.
+    שילוב: החלקה אקספוננציאלית (α=0.55, 50%) + ממוצע משוקלל (decay=0.72, 30%) + חציון (20%).`;
+}
+
+// ============================================================
+//  SLIDER
+// ============================================================
+// Cache deterministic predictions so they don't change on re-render
+const predCache = new Map();
+
+function getHistoricalPred(idx) {
+  if (predCache.has(idx)) return predCache.get(idx);
+  const historicalBatches = batches.slice(0, idx);
+  const refTime = historicalBatches.length > 0
+    ? historicalBatches[historicalBatches.length - 1][0].ts * 1000
+    : Date.now();
+  const pred = predictNext(historicalBatches, refTime, true); // deterministic
+  predCache.set(idx, pred);
+  return pred;
+}
+
+function renderSlider() {
+  const slider = document.getElementById('timeline-slider');
+  // Slider goes from 0 to batches.length (inclusive), value batches.length = live
+  slider.min = 1;
+  slider.max = batches.length;
+  slider.value = batches.length;
+
+  if (batches.length > 0) {
+    document.getElementById('slider-start').textContent = formatDateTime(batches[0][0].ts);
+    document.getElementById('slider-end').textContent = 'עכשיו (Live)';
+  }
+
+  slider.addEventListener('input', updateSlider);
+  updateSlider();
+}
+
+function updateSlider() {
+  const slider = document.getElementById('timeline-slider');
+  const idx = parseInt(slider.value);
+  const isLive = idx === batches.length;
+
+  const badge = document.getElementById('slider-mode-badge');
+  badge.textContent = isLive ? '⦿ LIVE' : `⧖ היסטוריה (${idx}/${batches.length})`;
+  badge.className = 'slider-mode-badge ' + (isLive ? 'mode-live' : 'mode-history');
+
+  if (isLive) {
+    // Show live prediction (already cached, won't change)
+    if (!currentPred) renderPrediction(batches);
+    // Restore live pred display if coming back from historical
+    const pred = livePredCached || currentPred;
+    if (pred) {
+      const d = new Date(pred.ts * 1000);
+      const now = Date.now();
+      const isPast = pred.ts * 1000 < now;
+      document.getElementById('pred-time').textContent =
+        d.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+      document.getElementById('pred-date').textContent =
+        d.toLocaleDateString('he-IL', {weekday:'long', day:'numeric', month:'long'}) +
+        (isPast ? ' ⚠️ עבר' : '');
+      document.getElementById('past-warning').style.display = isPast ? 'block' : 'none';
+      const confPct = Math.round(pred.confidence * 100);
+      document.getElementById('conf-fill').style.width = confPct + '%';
+      document.getElementById('conf-label').textContent = confPct + '%';
+      const topR = Object.entries(pred.regionProbs || {})
+        .filter(([,v])=>v>0.05).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      document.getElementById('pred-details').innerHTML = `
+        ${topR.map(([r,p])=>`
+          <div class="pred-detail-row">
+            <span class="pred-detail-label">סיכוי — <span class="region-tag tag-${r}">${REGION_LABELS[r]}</span></span>
+            <span class="pred-detail-val">${Math.round(p*100)}%</span>
+          </div>`).join('')}
+        <div class="pred-detail-row">
+          <span class="pred-detail-label">ממוצע משוקלל</span>
+          <span class="pred-detail-val">${pred.wMean ? Math.round(pred.wMean/60)+'ד\'' : '–'}</span>
+        </div>
+        <div class="pred-detail-row">
+          <span class="pred-detail-label">חציון</span>
+          <span class="pred-detail-val">${pred.median ? Math.round(pred.median/60)+'ד\'' : '–'}</span>
+        </div>
+        <div class="pred-detail-row">
+          <span class="pred-detail-label">החלקה אקספוננציאלית</span>
+          <span class="pred-detail-val">${pred.expSmooth ? Math.round(pred.expSmooth/60)+'ד\'' : '–'}</span>
+        </div>
+        <div class="pred-detail-row">
+          <span class="pred-detail-label">סטיית תקן</span>
+          <span class="pred-detail-val">${pred.wStd ? Math.round(pred.wStd/60)+'ד\'' : '–'}</span>
+        </div>
+        <div class="pred-detail-row">
+          <span class="pred-detail-label">מטחים לניתוח</span>
+          <span class="pred-detail-val">${pred.n || 0}</span>
+        </div>
+      `;
+    }
+    document.getElementById('si-idx').textContent = `${batches.length} (עכשיו)`;
+    document.getElementById('si-time').textContent = batches.length > 0 ? formatDateTime(batches[batches.length-1][0].ts) : '–';
+    document.getElementById('si-region').textContent = batches.length > 0 ?
+      [...new Set(batches[batches.length-1].map(a=>REGION_LABELS[a.region]))].join(', ') : '–';
+    document.getElementById('si-pred').textContent = currentPred ?
+      formatDateTime(currentPred.ts) : '–';
+    document.getElementById('si-actual-wrap').style.display = 'none';
+    document.getElementById('si-error-wrap').style.display = 'none';
+  } else {
+    // Historical prediction: cached deterministic — always same result for same idx
+    const pred = getHistoricalPred(idx);
+
+    const currentBatch = batches[idx - 1];
+    const targetBatch = batches[idx]; // actual next batch
+
+    document.getElementById('si-idx').textContent = `${idx} / ${batches.length}`;
+    document.getElementById('si-time').textContent = currentBatch ? formatDateTime(currentBatch[0].ts) : '–';
+    document.getElementById('si-region').textContent = currentBatch ?
+      [...new Set(currentBatch.map(a=>REGION_LABELS[a.region]))].join(', ') : '–';
+    document.getElementById('si-pred').textContent = formatDateTime(pred.ts);
+
+    if (targetBatch) {
+      const actualTs = targetBatch[0].ts;
+      document.getElementById('si-actual-wrap').style.display = '';
+      document.getElementById('si-actual').textContent = formatDateTime(actualTs);
+      const errMin = Math.round(Math.abs(pred.ts - actualTs) / 60);
+      document.getElementById('si-error-wrap').style.display = '';
+      const errColor = errMin < 30 ? '#22c55e' : errMin < 90 ? '#f59e0b' : '#ef4444';
+      document.getElementById('si-error').innerHTML = `<span style="color:${errColor}">${errMin} דקות</span>`;
+    } else {
+      document.getElementById('si-actual-wrap').style.display = 'none';
+      document.getElementById('si-error-wrap').style.display = 'none';
+    }
+
+    // Update prediction panel with full details
+    const d = new Date(pred.ts * 1000);
+    document.getElementById('pred-time').textContent =
+      d.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    document.getElementById('pred-date').textContent =
+      d.toLocaleDateString('he-IL', {weekday:'long', day:'numeric', month:'long'}) +
+      ' [היסטורי]';
+    document.getElementById('past-warning').style.display = 'none';
+    const confPct = Math.round(pred.confidence * 100);
+    document.getElementById('conf-fill').style.width = confPct + '%';
+    document.getElementById('conf-label').textContent = confPct + '%';
+    // Update pred details
+    const topRegions = Object.entries(pred.regionProbs || {})
+      .filter(([,v])=>v>0.05).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    document.getElementById('pred-details').innerHTML = `
+      ${topRegions.map(([r,p])=>`
+        <div class="pred-detail-row">
+          <span class="pred-detail-label">סיכוי — <span class="region-tag tag-${r}">${REGION_LABELS[r]}</span></span>
+          <span class="pred-detail-val">${Math.round(p*100)}%</span>
+        </div>`).join('')}
+      <div class="pred-detail-row">
+        <span class="pred-detail-label">ממוצע משוקלל</span>
+        <span class="pred-detail-val">${pred.wMean ? Math.round(pred.wMean/60)+'ד\'' : '–'}</span>
+      </div>
+      <div class="pred-detail-row">
+        <span class="pred-detail-label">חציון</span>
+        <span class="pred-detail-val">${pred.median ? Math.round(pred.median/60)+'ד\'' : '–'}</span>
+      </div>
+      <div class="pred-detail-row">
+        <span class="pred-detail-label">החלקה אקספוננציאלית</span>
+        <span class="pred-detail-val">${pred.expSmooth ? Math.round(pred.expSmooth/60)+'ד\'' : '–'}</span>
+      </div>
+      <div class="pred-detail-row">
+        <span class="pred-detail-label">סטיית תקן</span>
+        <span class="pred-detail-val">${pred.wStd ? Math.round(pred.wStd/60)+'ד\'' : '–'}</span>
+      </div>
+      <div class="pred-detail-row">
+        <span class="pred-detail-label">מטחים לניתוח</span>
+        <span class="pred-detail-val">${pred.n || 0}</span>
+      </div>
+    `;
+  }
+}
+
+// ============================================================
+//  CHARTS
+// ============================================================
+function renderCharts() {
+  // 1. Regions bar chart
+  const byRegion = {north:0, center:0, south:0, wb:0};
+  batches.forEach(b => {
+    const regions = new Set(b.map(a => a.region));
+    regions.forEach(r => byRegion[r]++);
+  });
+
+  const ctx1 = document.getElementById('chart-regions').getContext('2d');
+  new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: ['צפון','מרכז','דרום','יו"ש'],
+      datasets: [{
+        data: [byRegion.north, byRegion.center, byRegion.south, byRegion.wb],
+        backgroundColor: ['rgba(99,102,241,0.7)','rgba(245,158,11,0.7)','rgba(239,68,68,0.7)','rgba(34,197,94,0.7)'],
+        borderColor: ['#6366f1','#f59e0b','#ef4444','#22c55e'],
+        borderWidth: 1,
+        borderRadius: 6,
+      }]
+    },
+    options: chartOptions('מטחים לפי גזרה')
+  });
+
+  // 2. Daily chart — use YYYY-MM-DD as sort key, display as DD/MM
+  const dailyMap = {};
+  const dailyTsMap = {}; // sortable key → display label
+  batches.forEach(b => {
+    const d = new Date(b[0].ts * 1000);
+    const sortKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const displayLabel = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+    dailyMap[sortKey] = (dailyMap[sortKey] || 0) + 1;
+    dailyTsMap[sortKey] = displayLabel;
+  });
+  const dailyKeys = Object.keys(dailyMap).sort(); // sorts correctly as YYYY-MM-DD
+  const dailyLabels = dailyKeys.map(k => dailyTsMap[k]);
+  const ctx2 = document.getElementById('chart-daily').getContext('2d');
+  new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: dailyLabels,
+      datasets: [{
+        label: 'מטחים',
+        data: dailyKeys.map(k => dailyMap[k]),
+        borderColor: '#e85d26',
+        backgroundColor: 'rgba(232,93,38,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      },{
+        label: 'ממוצע נע (3י)',
+        data: dailyKeys.map((_, i) => {
+          const vals = dailyKeys.slice(Math.max(0,i-1),i+2).map(k=>dailyMap[k]);
+          return vals.reduce((a,b)=>a+b,0)/vals.length;
+        }),
+        borderColor: 'rgba(245,158,11,0.6)',
+        borderDash: [4,4],
+        fill: false,
+        tension: 0.4,
+        pointRadius: 0,
+      }]
+    },
+    options: chartOptions('מטחים לפי יום')
+  });
+
+  // 3. Hourly chart
+  const hourCounts = new Array(24).fill(0);
+  batches.forEach(b => {
+    const h = new Date(b[0].ts * 1000).getHours();
+    hourCounts[h]++;
+  });
+  const ctx3 = document.getElementById('chart-hourly').getContext('2d');
+  new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: Array.from({length:24}, (_,i)=>i+':00'),
+      datasets: [{
+        label: 'מטחים',
+        data: hourCounts,
+        backgroundColor: hourCounts.map(v => {
+          const max = Math.max(...hourCounts);
+          const ratio = v/max;
+          return `rgba(232,93,38,${0.2 + ratio*0.7})`;
+        }),
+        borderRadius: 4,
+      }]
+    },
+    options: chartOptions('מטחים לפי שעה')
+  });
+
+  // 4. Interval histogram
+  const intervals = getIntervals(batches);
+  const buckets = {};
+  intervals.forEach(iv => {
+    const bucket = Math.floor(iv / 3600) * 60; // hours in minutes
+    const key = bucket < 60 ? `${Math.floor(iv/60)}ד'` : `${Math.floor(iv/3600)}ש'`;
+    buckets[key] = (buckets[key]||0)+1;
+  });
+  // Simpler: bucket by hours
+  const hBuckets = {};
+  intervals.forEach(iv => {
+    const h = Math.floor(iv/3600);
+    const label = h === 0 ? '<1ש\'' : `${h}-${h+1}ש\'`;
+    hBuckets[label] = (hBuckets[label]||0)+1;
+  });
+  const hKeys = Object.keys(hBuckets).sort((a,b)=>{
+    const na = parseFloat(a); const nb = parseFloat(b);
+    return na-nb;
+  });
+  const ctx4 = document.getElementById('chart-intervals').getContext('2d');
+  new Chart(ctx4, {
+    type: 'bar',
+    data: {
+      labels: hKeys,
+      datasets: [{
+        label: 'מרווחים',
+        data: hKeys.map(k=>hBuckets[k]),
+        backgroundColor: 'rgba(59,130,246,0.6)',
+        borderColor: '#3b82f6',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: chartOptions('התפלגות מרווחים')
+  });
+}
+
+function chartOptions(title) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a2235',
+        borderColor: '#1e2d45',
+        borderWidth: 1,
+        titleColor: '#e2e8f0',
+        bodyColor: '#94a3b8',
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#64748b', font: { size: 10 } },
+        grid: { color: 'rgba(30,45,69,0.5)' }
+      },
+      y: {
+        ticks: { color: '#64748b', font: { size: 10 } },
+        grid: { color: 'rgba(30,45,69,0.5)' },
+        beginAtZero: true
+      }
+    }
+  };
+}
+
+// ============================================================
+//  TABLE — one row per batch per region
+// ============================================================
+let filteredRows = []; // [{batchIdx, region, ts, allCities, mainCities}]
+
+// "Main cities" = well-known cities worth highlighting
+const MAIN_CITIES = new Set([
+  "קריית שמונה","מטולה","נהריה","עכו","חיפה","כרמיאל","מעלות","שלומי","נצרת","טבריה",
+  "צפת","עפולה","מגדל העמק","יקנעם","בית שאן","חדרה","נתניה","הרצליה","כפר סבא",
+  "רעננה","הוד השרון","תל אביב","בת ים","חולון","רמת גן","פתח תקווה","בני ברק",
+  "רמלה","לוד","ירושלים","בית שמש","מודיעין","רחובות","ראשון לציון","נס ציונה",
+  "אשדוד","אשקלון","שדרות","נתיבות","קריית גת","באר שבע","דימונה","אופקים",
+  "ערד","ירוחם","רהט","מצפה רמון","אריאל","מעלה אדומים","קריית ארבע","אפרת"
+]);
+
+function buildTableRows() {
+  const rows = [];
+  batches.forEach((batch, bIdx) => {
+    // Group cities by region within the batch
+    const byRegion = {};
+    batch.forEach(a => {
+      if (!byRegion[a.region]) byRegion[a.region] = [];
+      a.cities.forEach(c => {
+        if (!byRegion[a.region].includes(c)) byRegion[a.region].push(c);
+      });
+    });
+    Object.entries(byRegion).forEach(([region, cities]) => {
+      const mainCities = cities.filter(c => MAIN_CITIES.has(c));
+      // If no main cities, take first 3
+      const displayMain = mainCities.length > 0 ? mainCities.slice(0,4) : cities.slice(0,3);
+      rows.push({
+        batchIdx: bIdx + 1,
+        region,
+        ts: batch[0].ts,
+        allCities: cities,
+        displayMain
+      });
+    });
+  });
+  // newest first
+  return rows.reverse();
+}
+
+let filteredTableRows = [];
+
+function renderTable() {
+  const allRows = buildTableRows();
+  if (currentFilter === 'all') {
+    filteredTableRows = allRows;
+  } else {
+    filteredTableRows = allRows.filter(r => r.region === currentFilter);
+  }
+
+  currentPage = 1;
+  renderTablePage();
+  renderPagination();
+
+  document.getElementById('table-count').textContent =
+    `מוצגות ${filteredTableRows.length} שורות (${batches.length} מטחים, ${allAlerts.length} התרעות)`;
+}
+
+function renderTablePage() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = filteredTableRows.slice(start, start + PAGE_SIZE);
+  const tbody = document.getElementById('table-body');
+
+  tbody.innerHTML = page.map((row, i) => {
+    const num = start + i + 1;
+    const uid = `r${start+i}`;
+    const shortStr = row.displayMain.join('، ');
+    const hasMore = row.allCities.length > row.displayMain.length;
+    const allStr = row.allCities.join('، ');
+
+    return `
+      <tr>
+        <td style="color:var(--text-muted);font-family:JetBrains Mono,monospace;font-size:11px">${num}</td>
+        <td style="font-family:JetBrains Mono,monospace;font-size:12px;white-space:nowrap">${formatDateTime(row.ts)}</td>
+        <td><span class="region-tag tag-${row.region}">${REGION_LABELS[row.region]}</span></td>
+        <td>
+          <span id="cs-${uid}">${shortStr}</span>
+          <span id="ca-${uid}" style="display:none">${allStr}</span>
+          ${hasMore ? `<button class="expand-btn" onclick="toggleCities('${uid}',${row.allCities.length - row.displayMain.length})" id="eb-${uid}">+${row.allCities.length - row.displayMain.length} עוד</button>` : ''}
+        </td>
+        <td><span class="batch-badge">#${row.batchIdx}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function toggleCities(uid, extra) {
+  const cs = document.getElementById('cs-'+uid);
+  const ca = document.getElementById('ca-'+uid);
+  const eb = document.getElementById('eb-'+uid);
+  if (ca.style.display === 'none') {
+    cs.style.display = 'none';
+    ca.style.display = 'inline';
+    eb.textContent = 'פחות';
+  } else {
+    ca.style.display = 'none';
+    cs.style.display = 'inline';
+    eb.textContent = `+${extra} עוד`;
+  }
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(filteredTableRows.length / PAGE_SIZE);
+  const pg = document.getElementById('pagination');
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+
+  let html = '';
+  const range = [];
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2) range.push(p);
+    else if (range[range.length-1] !== '...') range.push('...');
+  }
+
+  if (currentPage > 1) html += `<button class="page-btn" onclick="goPage(${currentPage-1})">‹</button>`;
+  range.forEach(p => {
+    if (p === '...') html += `<button class="page-btn" disabled>…</button>`;
+    else html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  });
+  if (currentPage < totalPages) html += `<button class="page-btn" onclick="goPage(${currentPage+1})">›</button>`;
+  pg.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderTablePage();
+  renderPagination();
+  document.querySelector('.table-panel').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderTable();
+  });
+});
+
+// ============================================================
+//  BOOT
+// ============================================================
+loadData();
+
+// Refresh: only update status text, never recalculate live prediction
+setInterval(() => {
+  // nothing — live pred is intentionally stable
+}, 5 * 60 * 1000);
+</script>
+</body>
+</html>
